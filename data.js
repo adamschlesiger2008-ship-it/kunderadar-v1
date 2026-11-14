@@ -35,8 +35,12 @@ export async function loadOpportunities(){
     if(!response.ok) throw new Error('JSON kunne ikke indlæses');
     const data=await response.json();
     if(!Array.isArray(data)) throw new Error('Forventede en liste');
-    verified=data.filter(validateOpportunity);
-  } catch(error) {console.warn('Ingen verificerede muligheder indlæst:',error.message)}
+const today = new Date().toISOString().slice(0, 10);
+
+verified = data.filter(item =>
+  validateOpportunity(item) &&
+  item.deadline >= today
+);  } catch(error) {console.warn('Ingen verificerede muligheder indlæst:',error.message)}
   const seen=new Set();
   verified=verified.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true});
   return {verified,demo:DEMO_OPPORTUNITIES};

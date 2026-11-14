@@ -1,0 +1,20 @@
+
+name: KundeRadar - Opdater udbud
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent projektet
+        uses: actions/checkout@v4
+
+      - name: Kontroller datafil
+        run: |
+          python3 -m json.tool data/opportunities.json > /dev/null
+          echo "KundeRadar datafil er gyldig JSON"

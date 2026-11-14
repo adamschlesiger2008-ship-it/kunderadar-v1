@@ -19,8 +19,25 @@ export const DEMO_OPPORTUNITIES = [
 {id:'demo-012',title:'Vedligehold af udearealer ved kontorer',description:'Illustrativ opgave om løbende udendørs service og affaldshåndtering.',category:'Ejendomsservice',region:'Sjælland',city:'Næstved',issuer:'Fiktiv Servicegruppe',publishedAt:'2026-10-20',deadline:'2026-12-28'}
 ].map(item=>({...item,sourceName:'Demo – ingen originalkilde',sourceUrl:null,isDemo:true}));
 
+const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value+'T12:00:00Z'));
+export function validateOpportunity(item){
+  if (!item || typeof item !== 'object' || item.isDemo !== false) return false;
+  const fields=['id','title','description','category','region','city','issuer','publishedAt','deadline','sourceName','sourceUrl'];
+  if (!fields.every(key => typeof item[key] === 'string' && item[key].trim())) return false;
+  if (!validDate(item.publishedAt) || !validDate(item.deadline)) return false;
+  try { const u=new URL(item.sourceUrl); if(u.protocol !== 'https:' && u.protocol !== 'http:') return false; } catch {return false}
+  return true;
+}
 export async function loadOpportunities(){
-  // FUTURE INTEGRATION: replace with fetch('/data/opportunities.json') from an authorized data pipeline.
-  // Normalize source records to the adapter contract and validate URLs and dates.
-  return DEMO_OPPORTUNITIES;
+  let verified=[];
+  try {
+    const response=await fetch('./data/opportunities.json',{cache:'no-store'});
+    if(!response.ok) throw new Error('JSON kunne ikke indlæses');
+    const data=await response.json();
+    if(!Array.isArray(data)) throw new Error('Forventede en liste');
+    verified=data.filter(validateOpportunity);
+  } catch(error) {console.warn('Ingen verificerede muligheder indlæst:',error.message)}
+  const seen=new Set();
+  verified=verified.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true});
+  return {verified,demo:DEMO_OPPORTUNITIES};
 }

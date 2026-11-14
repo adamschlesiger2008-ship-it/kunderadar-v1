@@ -1,62 +1,59 @@
-# KundeRadar v1 – gratis prototype
+# KundeRadar V2 – gratis, statisk webapp
 
-En responsiv, dansk webapp uden frameworks, betalte API'er eller krav om database. **Alle 12 muligheder er fiktive eksempeldata** og må ikke fremstilles som faktiske udbud.
+V2 bygger videre på V1. Ingen betalte API'er, database, backend eller build-værktøjer er nødvendige.
 
-## Funktioner
-- Søgning i titel, beskrivelse, udsteder og geografi
-- Filtre for branche og region; sortering efter dato, frist eller titel
-- Gem favoritter og præferencer lokalt i browseren (`localStorage`)
-- Mobilvenligt dashboard og tydelig demo-markering
-- Dataadapter i `data.js` klar til senere integration af verificerede udbud
+## Nyheder
+- Vælg mellem **Verificerede muligheder** og **Fiktive demoeksempler**.
+- Verificerede muligheder læses fra `data/opportunities.json`.
+- Tomme rigtige data vises ærligt som tom liste, ikke som opdigtede udbud.
+- Hvert verificeret opslag skal have originalkilde og datoer; ugyldige poster afvises.
+- Søgning, filtre, sortering, favoritter og præferencer er bevaret.
 
-## Test lokalt
-Da appen bruger JavaScript-moduler, skal den åbnes via en lokal webserver, ikke ved at dobbeltklikke på `index.html`.
+## Test i browseren
+1. Åbn siden: 'Verificerede muligheder' viser **0**, da JSON-filen starter tom.
+2. Skift til 'Prøv med fiktive eksempler': der vises **12** kort med mærket FIKTIVT EKSEMPEL.
+3. Søg `rengøring`, filtrér på Midtjylland, sorter efter frist, gem en mulighed og genindlæs siden.
+4. Skift tilbage til 'Verificerede muligheder': der vises ikke fiktive kort.
+5. Åbn browserens udviklerværktøjer og kontrollér for fejl, hvis noget ikke virker.
 
-Med Python installeret:
+## Sådan lægger du V2 på eksisterende GitHub/Cloudflare
+1. Pak `KundeRadar-v2.zip` ud.
+2. Gå til dit eksisterende GitHub-repository `kunderadar-v1`.
+3. Vælg **Add file → Upload files**.
+4. Upload **index.html, styles.css, app.js, data.js og mappen data med opportunities.json**. Erstat eksisterende filer. `README.md` kan også opdateres.
+5. VIGTIGT: `data/opportunities.json` skal ligge i mappen `data` (ikke i rodmappen).
+6. Klik **Commit changes**. Cloudflare Pages deployer automatisk efter commit.
+7. Åbn din eksisterende `*.pages.dev`-adresse, og genindlæs eventuelt med Ctrl+F5.
 
-```bash
-cd kunderadar-v1
-python -m http.server 8000
+Hvis GitHub-webupload ikke bevarer undermappen, kan du oprette `data/opportunities.json` direkte via **Add file → Create new file** og skrive `data/opportunities.json` som filnavn, indsætte `[]` og committe.
+
+## Sådan tilføjer du en verificeret mulighed
+Redigér `data/opportunities.json` til en JSON-liste med poster i dette format:
+
+```json
+[
+  {
+    "id": "unik-kilde-id-123",
+    "title": "PRÆCIS titel fra originalopslaget",
+    "description": "Kort, faktuelt resumé af opslaget",
+    "category": "Rengøring",
+    "region": "Midtjylland",
+    "city": "Aarhus",
+    "issuer": "Navn på faktisk ordregiver",
+    "publishedAt": "2026-11-14",
+    "deadline": "2026-12-01",
+    "sourceName": "Navn på originalkilden",
+    "sourceUrl": "https://eksempel.dk/originalt-opslag",
+    "isDemo": false
+  }
+]
 ```
 
-Åbn http://localhost:8000 i browseren.
+**Dette er en formatillustration – IKKE en rigtig mulighed.** Kopiér ikke eksemplet til produktion. Kontrollér at titel, ordregiver, datoer, URL og rettigheder er korrekte, før en post publiceres. Brug kun lovligt tilgængelige og verificerede kilder. Appen indhenter ikke automatisk udbud; tilføj poster manuelt i V2. Der findes endnu ikke AI-matching, abonnement, login eller notifikationer.
 
-Alternativt kan du bruge VS Code med en gratis lokal webserver-udvidelse.
-
-## Gratis offentliggørelse på Cloudflare Pages
-1. Opret en gratis GitHub-konto på https://github.com/ og en gratis Cloudflare-konto på https://dash.cloudflare.com/.
-2. Opret et nyt **public eller private** repository på GitHub, fx `kunderadar-v1`.
-3. Upload filerne `index.html`, `styles.css`, `app.js`, `data.js` til repositoryets rod (ikke som ZIP-fil).
-4. I Cloudflare: **Workers & Pages → Create → Pages → Connect to Git** (menunavne kan ændres).
-5. Vælg dit GitHub-repository og godkend forbindelsen.
-6. Brug framework preset **None**, lad build command stå tom, og sæt output directory til `/` eller repositoryets rod, hvis feltet kræves.
-7. Klik **Save and Deploy**. Efter deployment får du typisk en gratis `*.pages.dev`-adresse.
-8. Åbn adressen på både mobil og computer. Test søgning, filtre og gemte muligheder.
-
-**Alternativ:** Cloudflare Pages Direct Upload kan også bruges til statiske filer, hvis Git-forbindelsen ikke er tilgængelig.
-
-Ingen betalingskort er nødvendige for selve koden. Tjek altid udbyderens aktuelle gratis plan og eventuelle krav ved tilmelding.
-
-## Fra demo til rigtige offentlige udbud
-`data.js` definerer et normaliseret dataformat med felterne:
-
-`id, title, description, category, region, city, issuer, publishedAt, deadline, sourceName, sourceUrl, isDemo`
-
-1. Undersøg de **aktuelle** muligheder, tilladelser og vilkår for adgang til udbudsdata via https://udbud.dk/ og andre officielle kilder. Antag ikke, at fri scraping eller et offentligt API er tilladt.
-2. Lav en serverbaseret, lovlig importproces (eller begynd med manuelt verificerede muligheder).
-3. Valider data og kildelinks, fjern dubletter, og noter hvornår data sidst er kontrolleret.
-4. Publicér et JSON-datasæt, fx `/data/opportunities.json`, og udskift `loadOpportunities()` med et `fetch()` til dette datasæt.
-5. Vis kun `isDemo: false` for faktisk verificerede opslag. Link altid til originalkilden.
-6. Overvej senere login, serverdatabase, abonnement og opdateringsjobs. Disse dele er **ikke** implementeret i v1.
-
-## Begrænsninger
-- Ingen faktiske udbud eller live-data endnu.
-- Ingen login, betaling, automatiske notifikationer eller AI-matching.
-- Gemte muligheder synkroniseres ikke mellem enheder og kan forsvinde, hvis browserdata slettes.
-- Fiktive deadlines og match-tal må ikke bruges til beslutninger om reelle opgaver.
-
-## Filoversigt
-- `index.html` – struktur og indhold
-- `styles.css` – layout og responsivt design
-- `app.js` – interaktiv funktionalitet
-- `data.js` – eksempeldata og fremtidig integrationskontrakt
+## Teknisk
+- `index.html` bruger `app.js` som ES-module.
+- `data.js` validerer poster og loader JSON med `fetch('./data/opportunities.json')`.
+- `styles.css` er responsivt.
+- Browserens `localStorage` gemmer favoritter og præferencer på den aktuelle enhed.
+- Hosting: Cloudflare Pages gratis plan inden for gældende grænser.

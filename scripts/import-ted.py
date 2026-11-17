@@ -10,7 +10,7 @@ URL = "https://api.ted.europa.eu/v3/notices/search"
 
 payload = {
     "query": "publication-date >= 20261101",
-    "fields": ["publication-number", "notice-title"],
+   "fields": ["publication-number", "notice-title", "publication-date"],
     "limit": 5
 }
 

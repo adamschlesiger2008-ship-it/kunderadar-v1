@@ -54,3 +54,18 @@ print(f"TED-data hentet: {len(notices)} bekendtgørelser")
 print(f"Rå data gemt i {output}")
 if notices:
     print("TED-felter i første bekendtgørelse:", json.dumps(notices[0], ensure_ascii=False, indent=2))
+from datetime import date
+
+aktive_frister = 0
+
+for notice in med_frist:
+    frister = notice.get("deadline-receipt-tender-date-lot", [])
+    if not isinstance(frister, list):
+        frister = [frister]
+
+    for frist in frister:
+        if isinstance(frist, str) and frist[:10] > date.today().isoformat():
+            aktive_frister += 1
+            break
+
+print(f"Bekendtgørelser med fremtidig tilbudsfrist: {aktive_frister}")

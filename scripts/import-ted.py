@@ -47,3 +47,5 @@ output.write_text(
 
 print(f"TED-data hentet: {len(notices)} bekendtgørelser")
 print(f"Rå data gemt i {output}")
+if notices:
+    print("TED-felter i første bekendtgørelse:", json.dumps(notices[0], ensure_ascii=False, indent=2))

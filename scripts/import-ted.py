@@ -1,4 +1,4 @@
-
+from datetime import datetime
 import json
 import urllib.request
 from pathlib import Path
@@ -9,7 +9,7 @@ from pathlib import Path
 URL = "https://api.ted.europa.eu/v3/notices/search"
 
 payload = {
-    "query": "publication-date >= 20261101 AND buyer-country = DNK",
+    "query": f"publication-date >= {datetime.now().strftime('%Y%m%d')} AND buyer-country = DNK",
     "fields": [
         "publication-number",
         "notice-title",

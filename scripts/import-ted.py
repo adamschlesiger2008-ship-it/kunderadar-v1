@@ -9,7 +9,7 @@ from pathlib import Path
 URL = "https://api.ted.europa.eu/v3/notices/search"
 
 payload = {
-    "query": "publication-date >= 20261101",
+   "query": "publication-date >= 20261101 AND buyer-country = DNK",
    "fields": ["publication-number", "notice-title", "publication-date"],
     "limit": 5
 }

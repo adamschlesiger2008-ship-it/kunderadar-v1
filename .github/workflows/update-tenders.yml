@@ -20,3 +20,5 @@ jobs:
           echo "KundeRadar datafil er gyldig JSON"
       - name: Test forbindelse til TED
         run: python3 scripts/test-ted.py
+      - name: Test import fra TED
+        run: python3 scripts/import-ted.py

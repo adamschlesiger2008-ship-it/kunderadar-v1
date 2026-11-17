@@ -15,7 +15,8 @@ payload = {
         "notice-title",
         "publication-date",
         "buyer-name",
-        "deadline-receipt-tender-date-lot"
+        "deadline-receipt-tender-date-lot",
+        "notice-type"
     ],
     "limit": 50
 }

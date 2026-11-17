@@ -70,3 +70,13 @@ for notice in med_frist:
             break
 
 print(f"Bekendtgørelser med fremtidig tilbudsfrist: {aktive_frister}")
+from collections import Counter
+
+typer = Counter(
+    notice.get("notice-type", "ukendt")
+    for notice in med_frist
+)
+
+print("Bekendtgørelsestyper med tilbudsfrist:")
+for type_navn, antal in typer.items():
+    print(f"{type_navn}: {antal}")

@@ -44,7 +44,12 @@ output.write_text(
     json.dumps(notices, ensure_ascii=False, indent=2),
     encoding="utf-8"
 )
+med_frist = [
+    notice for notice in notices
+    if notice.get("deadline-receipt-tender-date-lot")
+]
 
+print(f"Bekendtgørelser med tilbudsfrist: {len(med_frist)} ud af {len(notices)}")
 print(f"TED-data hentet: {len(notices)} bekendtgørelser")
 print(f"Rå data gemt i {output}")
 if notices:

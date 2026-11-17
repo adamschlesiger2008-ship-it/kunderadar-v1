@@ -17,7 +17,7 @@ payload = {
         "buyer-name",
         "deadline-receipt-tender-date-lot"
     ],
-    "limit": 5
+    "limit": 50
 }
 
 request = urllib.request.Request(

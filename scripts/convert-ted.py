@@ -70,6 +70,9 @@ CPV_RULES = [
     ('50', 'Reparation og vedligehold'),
     ('7033', 'Ejendomsservice'),
     ('79993', 'Ejendomsservice'),
+    ('42', 'Varer og materialer'),
+    ('38', 'Varer og materialer'),
+    ('31', 'Varer og materialer'),
     ('44', 'Varer og materialer'),
     ('39', 'Varer og materialer'),
     ('30', 'Varer og materialer'),
@@ -189,14 +192,28 @@ def location_for(notice):
 
 
 def category_for(notice, title):
+    # TED lists the main CPV first. Secondary CPVs may describe
+    # completely different subcontracting tasks; do not let them
+    # override the primary subject of the procurement.
     cpvs = all_texts(notice.get('classification-cpv'))
-    cpvs += all_texts(notice.get('classification-cpv-lot'))
+    if not cpvs:
+        cpvs = all_texts(notice.get('classification-cpv-lot'))
     codes = [re.sub(r'\D', '', cpv) for cpv in cpvs]
-    for prefix, category in CPV_RULES:
-        if any(code.startswith(prefix) for code in codes):
-            return category
+    codes = [code for code in codes if len(code) >= 8]
+
     if codes:
+        primary = codes[0]
+        # Most specific matching rule for the primary CPV wins.
+        matches = [
+            (len(prefix), category)
+            for prefix, category in CPV_RULES
+            if primary.startswith(prefix)
+        ]
+        if matches:
+            return max(matches, key=lambda item: item[0])[1]
         return 'Øvrige offentlige udbud'
+
+    # Use title keywords only when no usable CPV was supplied.
     lower = title.casefold()
     for word, category in KEYWORDS:
         if word in lower:
@@ -251,7 +268,9 @@ if not opportunities:
     raise RuntimeError('Ingen aktuelle udbud: eksisterende datafil bevares')
 
 DESTINATION.parent.mkdir(parents=True, exist_ok=True)
-DESTINATION.write_text(json.dumps(opportunities, ensure_ascii=False, indent=2), encoding='utf-8')
+temporary = DESTINATION.with_suffix('.json.tmp')
+temporary.write_text(json.dumps(opportunities, ensure_ascii=False, indent=2), encoding='utf-8')
+temporary.replace(DESTINATION)
 with_city = sum(item['city'] != 'Opgavested ikke oplyst' for item in opportunities)
 print(f'Bekendtgørelser undersøgt: {len(notices)}')
 print(f'Aktuelle udbud: {len(opportunities)}')

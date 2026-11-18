@@ -12,32 +12,82 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Hent projektet
         uses: actions/checkout@v4
 
-      - name: Kontroller datafil
+      - name: Kontroller eksisterende datafil
         run: |
           python3 -m json.tool data/opportunities.json > /dev/null
-          echo "KundeRadar datafil er gyldig JSON"
+          echo "Eksisterende datafil er gyldig JSON"
+
       - name: Test forbindelse til TED
         run: python3 scripts/test-ted.py
+
       - name: Test import fra TED
         run: python3 scripts/import-ted.py
-     
+
       - name: Omdan TED-data til KundeRadar
         run: python3 scripts/convert-ted.py
+
+      - name: Kontroller nye udbud
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("data/opportunities.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          if not isinstance(data, list):
+              raise SystemExit("FEJL: Datafilen er ikke en liste")
+
+          if not data:
+              raise SystemExit("FEJL: Datafilen er tom")
+
+          required = [
+              "id", "title", "description",
+              "category", "region", "city",
+              "issuer", "publishedAt", "deadline",
+              "sourceName", "sourceUrl"
+          ]
+
+          for index, item in enumerate(data, start=1):
+              if not isinstance(item, dict):
+                  raise SystemExit(
+                      f"FEJL: Udbud {index} er ikke et objekt"
+                  )
+
+              if item.get("isDemo") is not False:
+                  raise SystemExit(
+                      f"FEJL: Udbud {index} er ikke offentlige data"
+                  )
+
+              for field in required:
+                  value = item.get(field)
+
+                  if not isinstance(value, str) or not value.strip():
+                      raise SystemExit(
+                          f"FEJL: Udbud {index} mangler {field}"
+                      )
+
+          print(f"Kontrol bestået: {len(data)} udbud")
+          PY
 
       - name: Gem TED-data som artifact
         uses: actions/upload-artifact@v4
         with:
           name: ted-raw-data
           path: data/ted-raw.json
+
       - name: Gem opdaterede udbud i GitHub
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data/opportunities.json
+
           if ! git diff --cached --quiet; then
             git commit -m "Opdater danske udbud fra TED"
             git push

@@ -1,18 +1,22 @@
 
-name: KundeRadar - Sikker TED-test
+name: KundeRadar - Automatisk opdatering
 
-# Kun manuel start.
-# Ingen automatisk daglig opdatering under testen.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *"
 
-# Testen må ikke skrive ændringer til GitHub.
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: kunderadar-ted-update
+  cancel-in-progress: false
 
 jobs:
-  test:
+  update:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Hent projektet
@@ -21,78 +25,148 @@ jobs:
       - name: Kontroller eksisterende data
         run: |
           python3 -m json.tool data/opportunities.json > /dev/null
-          echo "Eksisterende datafil er gyldig JSON"
 
       - name: Test forbindelse til TED
         run: python3 scripts/test-ted.py
 
-      - name: Hent TED-data
+      - name: Hent nye udbud fra TED
         run: python3 scripts/import-ted.py
 
-      - name: Omdan TED-data
+      - name: Omdan TED-data til KundeRadar
         run: python3 scripts/convert-ted.py
 
-      - name: Kontroller resultatet
+      - name: Kontroller nye udbud
         run: |
           python3 - <<'PY'
           import json
+          from datetime import date
           from pathlib import Path
+          from urllib.parse import urlparse
 
           path = Path("data/opportunities.json")
           data = json.loads(path.read_text(encoding="utf-8"))
 
-          if not isinstance(data, list) or not data:
-              raise SystemExit("FEJL: Ingen udbud i resultatet")
+          if not isinstance(data, list):
+              raise SystemExit("FEJL: Data er ikke en liste")
+
+          if len(data) < 50:
+              raise SystemExit(
+                  f"FEJL: Kun {len(data)} udbud. "
+                  "Opdatering stoppet for at beskytte hjemmesiden."
+              )
 
           required = [
-              "id", "title", "description",
-              "category", "region", "city",
-              "issuer", "publishedAt", "deadline",
-              "sourceName", "sourceUrl"
+              "id", "title", "description", "category",
+              "region", "city", "issuer", "publishedAt",
+              "deadline", "sourceName", "sourceUrl"
           ]
 
-          for index, item in enumerate(data, start=1):
-              if not isinstance(item, dict):
-                  raise SystemExit(
-                      f"FEJL: Udbud {index} er ugyldigt"
-                  )
+          ids = set()
+          today = date.today()
 
-              if item.get("isDemo") is not False:
-                  raise SystemExit(
-                      f"FEJL: Udbud {index} er ikke et offentligt udbud"
-                  )
+          for number, item in enumerate(data, 1):
+              if not isinstance(item, dict):
+                  raise SystemExit(f"FEJL: Udbud {number} er ugyldigt")
 
               for field in required:
                   value = item.get(field)
-
                   if not isinstance(value, str) or not value.strip():
                       raise SystemExit(
-                          f"FEJL: Udbud {index} mangler {field}"
+                          f"FEJL: Udbud {number} mangler {field}"
                       )
+
+              if item.get("isDemo") is not False:
+                  raise SystemExit(
+                      f"FEJL: Udbud {number} er markeret forkert"
+                  )
+
+              if item["id"] in ids:
+                  raise SystemExit(
+                      f"FEJL: Dubleret ID: {item['id']}"
+                  )
+              ids.add(item["id"])
+
+              if item["sourceName"] != "TED":
+                  raise SystemExit("FEJL: Ukendt datakilde")
+
+              url = urlparse(item["sourceUrl"])
+              if (
+                  url.scheme != "https"
+                  or url.hostname != "ted.europa.eu"
+              ):
+                  raise SystemExit("FEJL: Ugyldigt TED-link")
+
+              try:
+                  deadline = date.fromisoformat(item["deadline"])
+                  published = date.fromisoformat(item["publishedAt"])
+              except ValueError:
+                  raise SystemExit("FEJL: Ugyldig dato")
+
+              if deadline < today:
+                  raise SystemExit("FEJL: Udløbet tilbudsfrist")
+
+              if published > today:
+                  raise SystemExit("FEJL: Fremtidig publiceringsdato")
 
           with_city = sum(
               item["city"] != "Opgavested ikke oplyst"
               for item in data
           )
 
+          categories = {item["category"] for item in data}
+
           print(f"Udbud i alt: {len(data)}")
           print(f"Udbud med by: {with_city}")
-          print(f"Udbud uden by: {len(data) - with_city}")
+          print(f"Forskellige brancher: {len(categories)}")
           print("Datakontrol bestået")
           PY
 
-      - name: Gem testresultater
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kunderadar-ted-test
-          path: |
-            data/ted-raw.json
-            data/opportunities.json
-          if-no-files-found: warn
-
-      - name: Bekraeft sikker test
+      - name: Beskyt mod stort datatab
         run: |
-          echo "Testen er gennemført."
-          echo "Ingen udbud er gemt tilbage til GitHub."
-          echo "Den offentlige hjemmeside er ikke ændret."
+          python3 - <<'PY'
+          import json
+          import subprocess
+
+          old = json.loads(
+              subprocess.check_output(
+                  ["git", "show", "HEAD:data/opportunities.json"],
+                  text=True
+              )
+          )
+
+          with open("data/opportunities.json", encoding="utf-8") as f:
+              new = json.load(f)
+
+          old_real = [
+              item for item in old
+              if isinstance(item, dict)
+              and item.get("isDemo") is False
+          ]
+
+          if len(old_real) >= 50 and len(new) < len(old_real) * 0.5:
+              raise SystemExit(
+                  "FEJL: Antallet af udbud er faldet "
+                  "mere end 50 %. Opdateringen stoppes."
+              )
+
+          print("Kontrol mod stort datatab bestået")
+          PY
+
+      - name: Gem opdaterede udbud på GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/opportunities.json
+
+          if git diff --cached --quiet; then
+            echo "Ingen ændringer i udbuddene"
+          else
+            git commit -m "Automatisk opdatering af TED-udbud"
+            git push
+          fi
+
+      - name: Vis resultat
+        run: |
+          echo "KundeRadar-opdateringen er gennemført."
+          echo "Kun kontrollerede udbud er gemt."

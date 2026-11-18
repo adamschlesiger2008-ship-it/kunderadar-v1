@@ -3,84 +3,93 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
-# KundeRadar - TED import med lokationer
+# KundeRadar - TED til hjemmesidens dataformat
 
 source = Path("data/ted-raw.json")
 destination = Path("data/opportunities.json")
 
 notices = json.loads(source.read_text(encoding="utf-8"))
 
+if not isinstance(notices, list):
+    raise ValueError("TED-data skal være en liste")
+
 today = datetime.now(
     ZoneInfo("Europe/Copenhagen")
 ).date().isoformat()
 
 
-def danish_text(value):
+def plain(value):
     if isinstance(value, str):
         return value.strip()
 
+    if isinstance(value, (int, float)):
+        return str(value)
+
     if isinstance(value, list):
-        for item in value:
-            result = danish_text(item)
+        for entry in value:
+            result = plain(entry)
             if result:
                 return result
 
     if isinstance(value, dict):
-        for language in ("dan", "DAN", "da", "eng", "ENG", "en"):
+        for language in (
+            "dan", "DAN", "da",
+            "eng", "ENG", "en"
+        ):
             if language in value:
-                result = danish_text(value[language])
+                result = plain(value[language])
                 if result:
                     return result
 
     return ""
 
 
-def first_value(notice, keys):
+def field(notice, *keys):
     for key in keys:
-        result = danish_text(notice.get(key))
+        result = plain(notice.get(key))
         if result:
             return result
 
     return ""
 
 
-def valid_date(value):
+def valid_day(value):
     if not isinstance(value, str):
         return False
 
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return False
+
     try:
-        datetime.strptime(value, "%Y-%m-%d")
-        return True
+        parsed = datetime.strptime(value, "%Y-%m-%d")
+        return parsed.strftime("%Y-%m-%d") == value
     except ValueError:
         return False
 
 
 def get_deadline(notice):
-    deadlines = notice.get(
+    raw = notice.get(
         "deadline-receipt-tender-date-lot", []
     )
 
-    if isinstance(deadlines, str):
-        deadlines = [deadlines]
+    if isinstance(raw, str):
+        raw = [raw]
 
-    if not isinstance(deadlines, list):
+    if not isinstance(raw, list):
         return ""
 
-    future_dates = []
+    dates = [
+        value[:10]
+        for value in raw
+        if isinstance(value, str)
+        and valid_day(value[:10])
+        and value[:10] >= today
+    ]
 
-    for value in deadlines:
-        if not isinstance(value, str):
-            continue
-
-        day = value[:10]
-
-        if valid_date(day) and day >= today:
-            future_dates.append(day)
-
-    return min(future_dates) if future_dates else ""
+    return min(dates) if dates else ""
 
 
 def get_source_url(notice):
@@ -90,29 +99,18 @@ def get_source_url(notice):
         return ""
 
     html = links.get("html", {})
+    url = ""
 
     if isinstance(html, str):
-        url = html.strip()
+        url = plain(html)
 
     elif isinstance(html, dict):
         url = (
-            html.get("DAN")
-            or html.get("ENG")
-            or html.get("dan")
-            or html.get("eng")
-            or ""
+            plain(html.get("DAN"))
+            or plain(html.get("ENG"))
+            or plain(html.get("dan"))
+            or plain(html.get("eng"))
         )
-
-        if isinstance(url, list):
-            url = url[0] if url else ""
-
-    else:
-        return ""
-
-    if not isinstance(url, str):
-        return ""
-
-    url = url.strip()
 
     parsed = urlparse(url)
 
@@ -126,96 +124,76 @@ def get_source_url(notice):
 
 
 def get_location(notice):
-    """
-    Læs kun felter, der beskriver arbejdsstedet.
+    # Arbejdssted fra TED - ikke køberens adresse.
+    city = field(
+        notice,
+        "place-of-performance-city-lot",
+        "place-of-performance-city-proc"
+    )
 
-    Bemærk:
-    TED kan have andre feltnavne end dem nedenfor.
-    Manglende oplysninger må ikke erstattes
-    med ordregiverens adresse.
-    """
+    postcode = field(
+        notice,
+        "place-of-performance-post-code-lot",
+        "place-of-performance-post-code-proc"
+    )
 
-    city = first_value(notice, [
-        "place-performance-city-lot",
-        "place-performance-city",
-    ])
+    subdivision = field(
+        notice,
+        "place-of-performance-subdiv-lot",
+        "place-of-performance-subdiv-proc"
+    )
 
-    postcode = first_value(notice, [
-        "place-performance-postcode-lot",
-        "place-performance-postcode",
-    ])
-
-    region = first_value(notice, [
-        "place-performance-subdivision-lot",
-        "place-performance-subdivision",
-    ])
-
-    # Postnummer vises kun som ekstra information.
-    # Vi udleder ikke automatisk en by fra det.
-    if city and postcode:
-        if postcode not in city:
-            city = f"{city} ({postcode})"
+    if city and postcode and postcode not in city:
+        city = f"{city} ({postcode})"
 
     if not city:
         city = "Opgavested ikke oplyst"
 
-    if not region:
-        region = "Ukendt region"
+    if not subdivision:
+        subdivision = "Ukendt region"
 
-    return city, region
+    return city, subdivision
 
 
 def get_category(notice):
-    """
-    En forsigtig kategorisering.
-    CPV-koder kan forbedre dette senere.
-    """
-
-    cpv = first_value(notice, [
+    cpv = field(
+        notice,
         "classification-cpv",
-        "classification-cpv-lot",
-    ])
+        "classification-cpv-lot"
+    )
 
-    code = re.sub(r"\D", "", cpv)[:2]
+    prefix = re.sub(r"\D", "", cpv)[:2]
 
     categories = {
         "45": "Byggeri og håndværk",
         "50": "Reparation og vedligehold",
         "72": "IT",
         "79": "Erhvervsservice",
-        "90": "Rengøring og miljø",
+        "90": "Rengøring og miljø"
     }
 
     return categories.get(
-        code,
+        prefix,
         "Offentligt udbud"
     )
 
 
 opportunities = []
+seen = set()
 
 for notice in notices:
     if not isinstance(notice, dict):
         continue
 
-    # Kun almindelige udbudsbekendtgørelser.
     if notice.get("notice-type") != "cn-standard":
         continue
 
-    number = danish_text(
-        notice.get("publication-number")
-    )
+    number = field(notice, "publication-number")
+    title = field(notice, "notice-title")
+    issuer = field(notice, "buyer-name")
 
-    title = danish_text(
-        notice.get("notice-title")
-    )
-
-    issuer = danish_text(
-        notice.get("buyer-name")
-    )
-
-    published = str(
-        notice.get("publication-date", "")
+    published = field(
+        notice, "publication-date"
     )[:10]
 
     deadline = get_deadline(notice)
@@ -225,27 +203,27 @@ for notice in notices:
         number,
         title,
         issuer,
-        published,
+        valid_day(published),
         deadline,
         source_url
     ]):
         continue
 
-    if not valid_date(published):
-        continue
-
     if deadline < published:
         continue
 
+    if number in seen:
+        continue
+
+    seen.add(number)
+
     city, region = get_location(notice)
 
-    description = first_value(notice, [
+    description = field(
+        notice,
         "description-lot",
-        "description-proc",
-    ])
-
-    if not description:
-        description = title
+        "description-proc"
+    ) or title
 
     opportunities.append({
         "id": f"ted-{number}",
@@ -263,17 +241,12 @@ for notice in notices:
     })
 
 
-# Fjern dubletter.
-seen = set()
-unique_opportunities = []
-
-for item in opportunities:
-    if item["id"] in seen:
-        continue
-
-    seen.add(item["id"])
-    unique_opportunities.append(item)
-
+# Beskyt eksisterende data mod tom import.
+if not opportunities:
+    raise RuntimeError(
+        "Ingen aktuelle udbud fundet. "
+        "Den eksisterende datafil bevares."
+    )
 
 destination.parent.mkdir(
     parents=True,
@@ -282,7 +255,7 @@ destination.parent.mkdir(
 
 destination.write_text(
     json.dumps(
-        unique_opportunities,
+        opportunities,
         ensure_ascii=False,
         indent=2
     ),
@@ -290,26 +263,15 @@ destination.write_text(
 )
 
 known_cities = sum(
-    1
-    for item in unique_opportunities
-    if item["city"] != "Opgavested ikke oplyst"
+    item["city"] != "Opgavested ikke oplyst"
+    for item in opportunities
 )
 
-print(
-    f"TED-bekendtgørelser undersøgt: {len(notices)}"
-)
-
-print(
-    f"Udbud klar til KundeRadar: {len(unique_opportunities)}"
-)
-
-print(
-    f"Udbud med oplyst by: {known_cities}"
-)
-
+print(f"TED-bekendtgørelser undersøgt: {len(notices)}")
+print(f"Udbud klar til KundeRadar: {len(opportunities)}")
+print(f"Udbud med oplyst by: {known_cities}")
 print(
     f"Udbud uden oplyst by: "
-    f"{len(unique_opportunities) - known_cities}"
+    f"{len(opportunities) - known_cities}"
 )
-
 print(f"Data gemt i {destination}")

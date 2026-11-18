@@ -1,13 +1,14 @@
 
-name: KundeRadar - Opdater udbud
+name: KundeRadar - Sikker TED-test
 
+# Kun manuel start.
+# Ingen automatisk daglig opdatering under testen.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 5 * * *'
 
+# Testen må ikke skrive ændringer til GitHub.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -17,7 +18,7 @@ jobs:
       - name: Hent projektet
         uses: actions/checkout@v4
 
-      - name: Kontroller eksisterende datafil
+      - name: Kontroller eksisterende data
         run: |
           python3 -m json.tool data/opportunities.json > /dev/null
           echo "Eksisterende datafil er gyldig JSON"
@@ -25,13 +26,13 @@ jobs:
       - name: Test forbindelse til TED
         run: python3 scripts/test-ted.py
 
-      - name: Test import fra TED
+      - name: Hent TED-data
         run: python3 scripts/import-ted.py
 
-      - name: Omdan TED-data til KundeRadar
+      - name: Omdan TED-data
         run: python3 scripts/convert-ted.py
 
-      - name: Kontroller nye udbud
+      - name: Kontroller resultatet
         run: |
           python3 - <<'PY'
           import json
@@ -40,11 +41,8 @@ jobs:
           path = Path("data/opportunities.json")
           data = json.loads(path.read_text(encoding="utf-8"))
 
-          if not isinstance(data, list):
-              raise SystemExit("FEJL: Datafilen er ikke en liste")
-
-          if not data:
-              raise SystemExit("FEJL: Datafilen er tom")
+          if not isinstance(data, list) or not data:
+              raise SystemExit("FEJL: Ingen udbud i resultatet")
 
           required = [
               "id", "title", "description",
@@ -56,12 +54,12 @@ jobs:
           for index, item in enumerate(data, start=1):
               if not isinstance(item, dict):
                   raise SystemExit(
-                      f"FEJL: Udbud {index} er ikke et objekt"
+                      f"FEJL: Udbud {index} er ugyldigt"
                   )
 
               if item.get("isDemo") is not False:
                   raise SystemExit(
-                      f"FEJL: Udbud {index} er ikke offentlige data"
+                      f"FEJL: Udbud {index} er ikke et offentligt udbud"
                   )
 
               for field in required:
@@ -72,25 +70,29 @@ jobs:
                           f"FEJL: Udbud {index} mangler {field}"
                       )
 
-          print(f"Kontrol bestået: {len(data)} udbud")
+          with_city = sum(
+              item["city"] != "Opgavested ikke oplyst"
+              for item in data
+          )
+
+          print(f"Udbud i alt: {len(data)}")
+          print(f"Udbud med by: {with_city}")
+          print(f"Udbud uden by: {len(data) - with_city}")
+          print("Datakontrol bestået")
           PY
 
-      - name: Gem TED-data som artifact
+      - name: Gem testresultater
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ted-raw-data
-          path: data/ted-raw.json
+          name: kunderadar-ted-test
+          path: |
+            data/ted-raw.json
+            data/opportunities.json
+          if-no-files-found: warn
 
-      - name: Gem opdaterede udbud i GitHub
+      - name: Bekraeft sikker test
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add data/opportunities.json
-
-          if ! git diff --cached --quiet; then
-            git commit -m "Opdater danske udbud fra TED"
-            git push
-          else
-            echo "Ingen ændringer i udbud"
-          fi
+          echo "Testen er gennemført."
+          echo "Ingen udbud er gemt tilbage til GitHub."
+          echo "Den offentlige hjemmeside er ikke ændret."

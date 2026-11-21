@@ -54,7 +54,7 @@ $('authResetForm').addEventListener('submit', async event => {
   setBusy(true);
   message('');
   try {
-    const redirectTo = window.location.origin + window.location.pathname + '?password_recovery=1#konto';
+    const redirectTo = window.location.origin + '/reset-password.html?recovery=1';
     const { error } = await client.auth.resetPasswordForEmail($('authResetEmail').value.trim(), { redirectTo });
     if (error) throw error;
     message('Hvis kontoen findes, får du en e-mail med et link til at vælge en ny adgangskode. Tjek også spam.');

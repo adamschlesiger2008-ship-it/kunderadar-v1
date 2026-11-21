@@ -54,7 +54,7 @@ $('authResetForm').addEventListener('submit', async event => {
   setBusy(true);
   message('');
   try {
-    const redirectTo = window.location.origin + window.location.pathname + '#konto';
+    const redirectTo = window.location.origin + window.location.pathname + '?password_recovery=1#konto';
     const { error } = await client.auth.resetPasswordForEmail($('authResetEmail').value.trim(), { redirectTo });
     if (error) throw error;
     message('Hvis kontoen findes, får du en e-mail med et link til at vælge en ny adgangskode. Tjek også spam.');
@@ -75,6 +75,9 @@ $('authRecoveryForm').addEventListener('submit', async event => {
     const { error } = await client.auth.updateUser({ password });
     if (error) throw error;
     recovering = false;
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('password_recovery');
+    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + '#konto');
     $('authRecoveryPanel').hidden = true;
     $('authNewPassword').value = '';
     $('authRepeatPassword').value = '';
@@ -135,13 +138,19 @@ async function init() {
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
-    const { data, error } = await client.auth.getSession();
-    if (error) throw error;
-    showUser(data.session?.user || null);
+    // Subscribe before restoring the session so the recovery event cannot be missed.
+    const isRecoveryReturn = new URL(window.location.href).searchParams.get('password_recovery') === '1';
     client.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') showRecovery();
+      if (event === 'PASSWORD_RECOVERY' || (isRecoveryReturn && session)) showRecovery();
       else if (!recovering) showUser(session?.user || null);
     });
+    const { data, error } = await client.auth.getSession();
+    if (error) throw error;
+    if (isRecoveryReturn && data.session) showRecovery();
+    else if (isRecoveryReturn && !data.session) {
+      showUser(null);
+      message('Nulstillingslinket kunne ikke bekræftes. Bed om et nyt link, og prøv igen.', true);
+    } else if (!recovering) showUser(data.session?.user || null);
   } catch (error) {
     message('Login kunne ikke startes. Tjek internetforbindelsen og Supabase-indstillingerne. ' + errorText(error), true);
   }

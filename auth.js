@@ -4,6 +4,7 @@ const $ = id => document.getElementById(id);
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(SUPABASE_URL) && /^sb_publishable_[A-Za-z0-9_-]+$/.test(SUPABASE_PUBLISHABLE_KEY);
 let client = null;
 let signup = false;
+let recovering = false;
 
 function message(value, error = false) {
   $('authMessage').textContent = value;
@@ -11,10 +12,14 @@ function message(value, error = false) {
 }
 function setBusy(busy) {
   $('authSubmit').disabled = busy;
+  $('authResetSend').disabled = busy;
+  $('authRecoverySubmit').disabled = busy;
   $('authSubmit').textContent = busy ? 'Vent venligst…' : signup ? 'Opret konto' : 'Log ind';
 }
 function setMode(nextSignup) {
   signup = nextSignup;
+  $('authForgotPanel').hidden = true;
+  $('authForm').hidden = false;
   $('authLoginTab').classList.toggle('is-active', !signup);
   $('authSignupTab').classList.toggle('is-active', signup);
   $('authLoginTab').setAttribute('aria-pressed', String(!signup));
@@ -24,18 +29,69 @@ function setMode(nextSignup) {
   message('');
 }
 function showUser(user) {
-  $('authGuest').hidden = Boolean(user);
-  $('authMember').hidden = !user;
+  $('authGuest').hidden = Boolean(user) || recovering;
+  $('authMember').hidden = !user || recovering;
   $('authUserEmail').textContent = user?.email || '';
 }
 function errorText(error) {
   const value = String(error?.message || 'Ukendt fejl');
   if (/rate limit|after \d+ seconds|too many requests/i.test(value)) return 'Der er sendt for mange forespørgsler. Vent lidt, før du prøver igen.';
   if (/email not confirmed/i.test(value)) return 'Din e-mail er endnu ikke bekræftet. Brug linket i bekræftelsesmailen.';
-  if (/invalid login credentials/i.test(value)) return 'E-mail eller adgangskode er forkert.';
+  if (/invalid login credentials/i.test(value)) return 'E-mail eller adgangskode er forkert. Brug Glemt adgangskode, hvis du ikke har en adgangskode endnu.';
   return value;
 }
 
+$('authForgotButton').addEventListener('click', () => {
+  $('authForm').hidden = true;
+  $('authForgotPanel').hidden = false;
+  $('authResetEmail').value = $('authEmail').value.trim();
+  message('');
+});
+$('authForgotCancel').addEventListener('click', () => setMode(false));
+$('authResetForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!client) return;
+  setBusy(true);
+  message('');
+  try {
+    const redirectTo = window.location.origin + window.location.pathname + '#konto';
+    const { error } = await client.auth.resetPasswordForEmail($('authResetEmail').value.trim(), { redirectTo });
+    if (error) throw error;
+    message('Hvis kontoen findes, får du en e-mail med et link til at vælge en ny adgangskode. Tjek også spam.');
+  } catch (error) { message(errorText(error), true); }
+  finally { setBusy(false); }
+});
+$('authRecoveryForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!client) return;
+  const password = $('authNewPassword').value;
+  if (password !== $('authRepeatPassword').value) {
+    message('Adgangskoderne er ikke ens.', true);
+    return;
+  }
+  setBusy(true);
+  message('');
+  try {
+    const { error } = await client.auth.updateUser({ password });
+    if (error) throw error;
+    recovering = false;
+    $('authRecoveryPanel').hidden = true;
+    $('authNewPassword').value = '';
+    $('authRepeatPassword').value = '';
+    const { data } = await client.auth.getUser();
+    showUser(data.user || null);
+    message('Din nye adgangskode er gemt. Du er logget ind.');
+  } catch (error) { message(errorText(error), true); }
+  finally { setBusy(false); }
+});
+function showRecovery() {
+  recovering = true;
+  $('authGuest').hidden = true;
+  $('authMember').hidden = true;
+  $('authRecoveryPanel').hidden = false;
+  window.location.hash = 'konto';
+  message('Vælg din nye adgangskode herunder.');
+}
 $('authLoginTab').addEventListener('click', () => setMode(false));
 $('authSignupTab').addEventListener('click', () => setMode(true));
 $('authForm').addEventListener('submit', async event => {
@@ -82,7 +138,10 @@ async function init() {
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
     showUser(data.session?.user || null);
-    client.auth.onAuthStateChange((_event, session) => showUser(session?.user || null));
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') showRecovery();
+      else if (!recovering) showUser(session?.user || null);
+    });
   } catch (error) {
     message('Login kunne ikke startes. Tjek internetforbindelsen og Supabase-indstillingerne. ' + errorText(error), true);
   }

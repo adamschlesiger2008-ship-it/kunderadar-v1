@@ -137,7 +137,7 @@ async function init() {
   }
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
+    client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { flowType: 'implicit', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
     // Subscribe before restoring the session so the recovery event cannot be missed.
     const isRecoveryReturn = new URL(window.location.href).searchParams.get('password_recovery') === '1';
     client.auth.onAuthStateChange((event, session) => {

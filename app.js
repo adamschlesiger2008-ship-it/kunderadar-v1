@@ -27,9 +27,11 @@ let syncClient = null;
 let syncUserId = null;
 let syncVersion = 0;
 let syncQueue = Promise.resolve();
+let appReady = false;
+let pendingAuthEvent = null;
 
 const date = iso => {
-  if (!iso || !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(iso))) return 'Ikke oplyst';
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return 'Ikke oplyst';
   const parsed = new Date(`${iso}T12:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return 'Ikke oplyst';
   return new Intl.DateTimeFormat('da-DK', {
@@ -123,6 +125,7 @@ function queueCloudSave() {
   });
 }
 async function connectCloud(event) {
+  if (!appReady) { pendingAuthEvent = event; return; }
   const { client, user } = event.detail || {};
   const version = ++syncVersion;
   syncClient = user ? client : null;
@@ -425,6 +428,12 @@ async function init() {
   $('statSaved').textContent = saved.size;
 
   render();
+  appReady = true;
+  if (pendingAuthEvent) {
+    const event = pendingAuthEvent;
+    pendingAuthEvent = null;
+    void connectCloud(event);
+  }
 }
 
 function refreshFilters() {

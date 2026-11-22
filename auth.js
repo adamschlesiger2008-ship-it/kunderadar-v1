@@ -6,6 +6,13 @@ let client = null;
 let signup = false;
 let recovering = false;
 let profileLoadedFor = null;
+let lastSyncAuthId = undefined;
+function notifySync(user) {
+  const next = user?.id || null;
+  if (lastSyncAuthId === next) return;
+  lastSyncAuthId = next;
+  window.dispatchEvent(new CustomEvent('kunderadar:auth', { detail: { client, user: user || null } }));
+}
 
 function message(value, error = false) {
   $('authMessage').textContent = value;
@@ -35,6 +42,7 @@ function showUser(user) {
   $('authGuest').hidden = Boolean(user) || recovering;
   $('authMember').hidden = !user || recovering;
   $('authUserEmail').textContent = user?.email || '';
+  notifySync(user);
   $('profileEmail').value = user?.email || '';
   if (!user) profileLoadedFor = null;
   else if (client && profileLoadedFor !== user.id) {

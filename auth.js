@@ -14,6 +14,7 @@ function setBusy(busy) {
   $('authSubmit').disabled = busy;
   $('authResetSend').disabled = busy;
   $('authRecoverySubmit').disabled = busy;
+  $('authSetPasswordSubmit').disabled = busy;
   $('authSubmit').textContent = busy ? 'Vent venligst…' : signup ? 'Opret konto' : 'Log ind';
 }
 function setMode(nextSignup) {
@@ -115,6 +116,29 @@ $('authForm').addEventListener('submit', async event => {
       showUser(result.data.user);
       message(signup ? 'Din konto er oprettet, og du er logget ind.' : 'Du er logget ind.');
     }
+  } catch (error) {
+    message(errorText(error), true);
+  } finally {
+    setBusy(false);
+  }
+});
+$('authSetPasswordForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!client) return;
+  const password = $('authSetPassword').value;
+  if (password !== $('authSetPasswordRepeat').value) {
+    message('Adgangskoderne er ikke ens.', true);
+    return;
+  }
+  setBusy(true);
+  message('');
+  try {
+    const { data: sessionData, error: sessionError } = await client.auth.getUser();
+    if (sessionError || !sessionData?.user) throw new Error('Din login-session er udløbet. Bed om et nyt nulstillingslink.');
+    const { error } = await client.auth.updateUser({ password });
+    if (error) throw error;
+    $('authSetPasswordForm').reset();
+    message('Adgangskoden er gemt på din konto. Du kan nu bruge den til login.');
   } catch (error) {
     message(errorText(error), true);
   } finally {

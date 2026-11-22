@@ -143,7 +143,7 @@ $('authRecoveryForm').addEventListener('submit', async event => {
     recovering = false;
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete('password_recovery');
-    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + '#konto');
+    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
     $('authRecoveryPanel').hidden = true;
     $('authNewPassword').value = '';
     $('authRepeatPassword').value = '';
@@ -158,7 +158,7 @@ function showRecovery() {
   $('authGuest').hidden = true;
   $('authMember').hidden = true;
   $('authRecoveryPanel').hidden = false;
-  window.location.hash = 'konto';
+  // Recovery form is already on the dedicated account page.
   message('Vælg din nye adgangskode herunder.');
 }
 $('authLoginTab').addEventListener('click', () => setMode(false));
@@ -172,7 +172,7 @@ $('authForm').addEventListener('submit', async event => {
   message('');
   try {
     const result = signup
-      ? await client.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + window.location.pathname + '#konto' } })
+      ? await client.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + '/konto.html' } })
       : await client.auth.signInWithPassword({ email, password });
     if (result.error) throw result.error;
     if (signup && !result.data.session) {

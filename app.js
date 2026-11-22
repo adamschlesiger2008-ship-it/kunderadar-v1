@@ -23,6 +23,10 @@ const prefs = storedPrefs && typeof storedPrefs === 'object' && !Array.isArray(s
 let opportunities = [];
 let datasets = { verified: [], demo: [] };
 let mode = 'verified';
+let syncClient = null;
+let syncUserId = null;
+let syncVersion = 0;
+let syncQueue = Promise.resolve();
 
 const date = iso => {
   if (!iso || !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(iso))) return 'Ikke oplyst';
@@ -70,6 +74,7 @@ function options(select, values) {
 }
 
 function syncSaved() {
+  queueCloudSave();
   try {
     localStorage.setItem(STORAGE_SAVED, JSON.stringify([...saved]));
   } catch (error) {
@@ -80,6 +85,77 @@ function syncSaved() {
   $('statSaved').textContent = saved.size;
   render();
 }
+
+
+function cloudStatus(value) {
+  const el = $('cloudSyncStatus');
+  if (el) el.textContent = value;
+}
+function applyCloudPreferences() {
+  for (const [id, value] of [
+    ['categoryFilter', prefs.category], ['regionFilter', prefs.region],
+    ['prefCategory', prefs.category], ['prefRegion', prefs.region]
+  ]) {
+    if ([...$(id).options].some(option => option.value === value)) $(id).value = value || '';
+  }
+  render();
+}
+function queueCloudSave() {
+  if (!syncClient || !syncUserId) return;
+  const userId = syncUserId;
+  const client = syncClient;
+  const version = syncVersion;
+  const snapshot = {
+    user_id: userId,
+    saved_ids: [...saved].filter(id => typeof id === 'string').slice(0, 1000),
+    preferences: { category: prefs.category || '', region: prefs.region || '' },
+    updated_at: new Date().toISOString()
+  };
+  cloudStatus('Synkroniserer…');
+  syncQueue = syncQueue.catch(() => {}).then(async () => {
+    if (version !== syncVersion || userId !== syncUserId) return;
+    const { error } = await client.from('kr_user_settings').upsert(snapshot, { onConflict: 'user_id' });
+    if (version !== syncVersion) return;
+    if (error) {
+      cloudStatus('Kunne ikke synkronisere. Dine ændringer er stadig gemt på denne enhed.');
+      console.warn('Synkronisering fejlede:', error.message);
+    } else cloudStatus('Gemte udbud og præferencer er synkroniseret med din konto.');
+  });
+}
+async function connectCloud(event) {
+  const { client, user } = event.detail || {};
+  const version = ++syncVersion;
+  syncClient = user ? client : null;
+  syncUserId = user?.id || null;
+  if (!syncUserId) {
+    cloudStatus('Log ind for at synkronisere mellem enheder.');
+    return;
+  }
+  cloudStatus('Henter dine gemte udbud og præferencer…');
+  const { data, error } = await client.from('kr_user_settings')
+    .select('saved_ids,preferences').eq('user_id', syncUserId).maybeSingle();
+  if (version !== syncVersion) return;
+  if (error) {
+    cloudStatus('Kunne ikke hente dine kontoindstillinger. Lokale favoritter er bevaret.');
+    return;
+  }
+  if (data) {
+    const remoteIds = Array.isArray(data.saved_ids) ? data.saved_ids : [];
+    for (const id of remoteIds) if (typeof id === 'string') saved.add(id);
+    const remotePrefs = data.preferences && typeof data.preferences === 'object' ? data.preferences : {};
+    if (typeof remotePrefs.category === 'string' && remotePrefs.category) prefs.category = remotePrefs.category;
+    if (typeof remotePrefs.region === 'string' && remotePrefs.region) prefs.region = remotePrefs.region;
+    try {
+      localStorage.setItem(STORAGE_SAVED, JSON.stringify([...saved]));
+      localStorage.setItem(STORAGE_PREF, JSON.stringify(prefs));
+    } catch (error) { console.warn('Kunne ikke opdatere lokal lagring.', error); }
+  }
+  $('savedCount').textContent = saved.size;
+  $('statSaved').textContent = saved.size;
+  applyCloudPreferences();
+  queueCloudSave();
+}
+window.addEventListener('kunderadar:auth', connectCloud);
 
 function makeCard(item) {
   const card = document.createElement('article');
@@ -323,6 +399,9 @@ async function init() {
       region: $('prefRegion').value
     };
 
+    prefs.category = value.category;
+    prefs.region = value.region;
+    queueCloudSave();
     try {
       localStorage.setItem(STORAGE_PREF, JSON.stringify(value));
     } catch (error) {
@@ -333,8 +412,9 @@ async function init() {
     $('categoryFilter').value = value.category;
     $('regionFilter').value = value.region;
 
-    $('prefMessage').textContent =
-      'Præferencer gemt på denne enhed.';
+    $('prefMessage').textContent = syncUserId
+      ? 'Præferencer gemt. Synkroniserer med din konto…'
+      : 'Præferencer gemt på denne enhed.';
 
     render();
   });

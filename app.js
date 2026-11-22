@@ -311,9 +311,9 @@ function render() {
 
   $('empty').hidden = matches.length > 0;
 
-  const savedItems = opportunities.filter(o =>
-    saved.has(o.id)
-  );
+  const allItems = [...datasets.verified, ...datasets.demo];
+  const savedItems = allItems.filter(o => saved.has(o.id));
+  const missingCount = [...saved].filter(id => !allItems.some(o => o.id === id)).length;
 
   $('savedCards').replaceChildren(
     ...savedItems.map(o => {
@@ -336,13 +336,11 @@ function render() {
     })
   );
 
-  if (!savedItems.length) {
-    $('savedCards').append(
-      text(
-        'p',
-        'Du har ikke gemt nogen muligheder endnu. Klik på “☆ Gem” på et kort.'
-      )
-    );
+  if (missingCount) {
+    $('savedCards').append(text('p', `${missingCount} gemte mulighed(er) findes ikke længere i den aktuelle udbudsliste. De er stadig bevaret på din konto.`, 'auth-help'));
+  }
+  if (!savedItems.length && !missingCount) {
+    $('savedCards').append(text('p', 'Du har ikke gemt nogen muligheder endnu. Klik på “☆ Gem” på et kort.'));
   }
 }
 

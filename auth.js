@@ -5,6 +5,7 @@ const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(SUPABASE_URL) && 
 let client = null;
 let signup = false;
 let recovering = false;
+let profileLoadedFor = null;
 
 function message(value, error = false) {
   $('authMessage').textContent = value;
@@ -15,6 +16,7 @@ function setBusy(busy) {
   $('authResetSend').disabled = busy;
   $('authRecoverySubmit').disabled = busy;
   $('authSetPasswordSubmit').disabled = busy;
+  $('profileSave').disabled = busy;
   $('authSubmit').textContent = busy ? 'Vent venligst…' : signup ? 'Opret konto' : 'Log ind';
 }
 function setMode(nextSignup) {
@@ -33,6 +35,12 @@ function showUser(user) {
   $('authGuest').hidden = Boolean(user) || recovering;
   $('authMember').hidden = !user || recovering;
   $('authUserEmail').textContent = user?.email || '';
+  $('profileEmail').value = user?.email || '';
+  if (!user) profileLoadedFor = null;
+  else if (client && profileLoadedFor !== user.id) {
+    profileLoadedFor = user.id;
+    void loadProfile(user.id);
+  }
 }
 function errorText(error) {
   const value = String(error?.message || 'Ukendt fejl');
@@ -42,6 +50,55 @@ function errorText(error) {
   return value;
 }
 
+function profileTypeChanged() {
+  const company = $('profileType').value === 'company';
+  $('profilePersonFields').hidden = company;
+  $('profileCompanyFields').hidden = !company;
+  $('profileName').required = !company;
+  $('profileAddress').required = !company;
+  $('profileCompanyName').required = company;
+  $('profileCvr').required = company;
+}
+$('profileType').addEventListener('change', profileTypeChanged);
+async function loadProfile(userId) {
+  const { data, error } = await client.from('kr_profiles').select('account_type,display_name,phone,address,company_name,cvr').eq('user_id', userId).maybeSingle();
+  if (profileLoadedFor !== userId) return;
+  if (error) { $('profileMessage').textContent = 'Kunne ikke hente profil: ' + errorText(error); return; }
+  $('profileType').value = data?.account_type === 'company' ? 'company' : 'person';
+  $('profileName').value = data?.display_name || '';
+  $('profilePhone').value = data?.phone || '';
+  $('profileAddress').value = data?.address || '';
+  $('profileCompanyName').value = data?.company_name || '';
+  $('profileCvr').value = data?.cvr || '';
+  profileTypeChanged();
+}
+$('profileForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!client) return;
+  $('profileSave').disabled = true;
+  $('profileMessage').textContent = 'Gemmer…';
+  try {
+    const { data: { user }, error: userError } = await client.auth.getUser();
+    if (userError || !user) throw new Error('Du skal være logget ind for at gemme oplysninger.');
+    const company = $('profileType').value === 'company';
+    const payload = {
+      user_id: user.id,
+      account_type: company ? 'company' : 'person',
+      display_name: company ? '' : $('profileName').value.trim(),
+      address: company ? '' : $('profileAddress').value.trim(),
+      company_name: company ? $('profileCompanyName').value.trim() : '',
+      cvr: company ? $('profileCvr').value.trim() : '',
+      phone: $('profilePhone').value.trim()
+    };
+    if (company && !/^[0-9]{8}$/.test(payload.cvr)) throw new Error('CVR-nummer skal være præcis 8 cifre.');
+    const { error } = await client.from('kr_profiles').upsert(payload, { onConflict: 'user_id' });
+    if (error) throw error;
+    $('profileMessage').textContent = 'Dine oplysninger er gemt på din konto.';
+  } catch (error) {
+    $('profileMessage').textContent = 'Kunne ikke gemme: ' + errorText(error);
+  } finally { $('profileSave').disabled = false; }
+});
+profileTypeChanged();
 $('authForgotButton').addEventListener('click', () => {
   $('authForm').hidden = true;
   $('authForgotPanel').hidden = false;

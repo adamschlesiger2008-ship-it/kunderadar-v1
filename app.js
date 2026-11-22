@@ -15,19 +15,23 @@ const read = (key, fallback) => {
   }
 };
 
-const saved = new Set(read(STORAGE_SAVED, []));
-const prefs = read(STORAGE_PREF, {});
+const storedSaved = read(STORAGE_SAVED, []);
+const saved = new Set(Array.isArray(storedSaved) ? storedSaved : []);
+const storedPrefs = read(STORAGE_PREF, {});
+const prefs = storedPrefs && typeof storedPrefs === 'object' && !Array.isArray(storedPrefs) ? storedPrefs : {};
 
 let opportunities = [];
 let datasets = { verified: [], demo: [] };
 let mode = 'verified';
 
-const date = iso => new Intl.DateTimeFormat('da-DK', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC'
-}).format(new Date(`${iso}T12:00:00Z`));
+const date = iso => {
+  if (!iso || !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(iso))) return 'Ikke oplyst';
+  const parsed = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return 'Ikke oplyst';
+  return new Intl.DateTimeFormat('da-DK', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'
+  }).format(parsed);
+};
 
 const todayInDenmark = () => new Intl.DateTimeFormat('sv-SE', {
   year: 'numeric',
@@ -53,6 +57,7 @@ const text = (tag, content, cls) => {
 
 const unique = field =>
   [...new Set(opportunities.map(o => o[field]))]
+    .filter(value => typeof value === 'string' && value.trim())
     .sort((a, b) => a.localeCompare(b, 'da'));
 
 function options(select, values) {
@@ -65,10 +70,11 @@ function options(select, values) {
 }
 
 function syncSaved() {
-  localStorage.setItem(
-    STORAGE_SAVED,
-    JSON.stringify([...saved])
-  );
+  try {
+    localStorage.setItem(STORAGE_SAVED, JSON.stringify([...saved]));
+  } catch (error) {
+    console.warn('Kunne ikke gemme favoritter på denne enhed.', error);
+  }
 
   $('savedCount').textContent = saved.size;
   $('statSaved').textContent = saved.size;
@@ -284,11 +290,12 @@ async function init() {
 
   refreshFilters();
 
-  $('categoryFilter').value = prefs.category || '';
-  $('regionFilter').value = prefs.region || '';
-
-  $('prefCategory').value = prefs.category || '';
-  $('prefRegion').value = prefs.region || '';
+  for (const [id, value] of [
+    ['categoryFilter', prefs.category], ['regionFilter', prefs.region],
+    ['prefCategory', prefs.category], ['prefRegion', prefs.region]
+  ]) {
+    if ([...$(id).options].some(option => option.value === value)) $(id).value = value;
+  }
 
   for (const id of [
     'searchInput',
@@ -316,10 +323,12 @@ async function init() {
       region: $('prefRegion').value
     };
 
-    localStorage.setItem(
-      STORAGE_PREF,
-      JSON.stringify(value)
-    );
+    try {
+      localStorage.setItem(STORAGE_PREF, JSON.stringify(value));
+    } catch (error) {
+      $('prefMessage').textContent = 'Kunne ikke gemme præferencer på denne enhed.';
+      return;
+    }
 
     $('categoryFilter').value = value.category;
     $('regionFilter').value = value.region;

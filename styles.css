@@ -8,3 +8,49 @@
 
 /* Selvstændig konto-side */
 .sidebar .brand{text-decoration:none}.account-main{max-width:1050px}.account-main .auth-panel{max-width:820px;padding:clamp(22px,4vw,40px)}.account-main .auth-form{max-width:500px}.account-main .auth-form select{padding:12px;border:1px solid #dce5f1;border-radius:9px;background:#fff;width:100%;font-size:14px}.account-main .auth-form h3{margin:20px 0 0}.account-main #authMember>p:first-child{margin-bottom:26px}.account-main #profileForm{padding-bottom:24px;border-bottom:1px solid #e7ecf4;margin-bottom:24px}
+
+
+/* KundeRadar motion & polish: lightweight, accessible, no animation libraries */
+:root{--kr-ease:cubic-bezier(.22,1,.36,1);--kr-ring:#2563eb}
+body{background:radial-gradient(ellipse 850px 460px at 80% -120px,#eaf1ff 0%,transparent 72%),#f5f7fb}
+.sidebar{box-shadow:6px 0 24px #0b14260a}
+.brand-icon{box-shadow:0 5px 18px #2563eb44}
+.sidebar nav a{transition:background-color .2s ease,color .2s ease,transform .2s var(--kr-ease)}
+.sidebar nav a:hover{transform:translateX(3px)}
+.stat,.panel{box-shadow:0 6px 26px #20355408}
+.stat{transition:transform .25s var(--kr-ease),box-shadow .25s ease}
+.stat:hover{transform:translateY(-3px);box-shadow:0 12px 28px #20355412}
+.opportunity{background:#fff;transition:transform .24s var(--kr-ease),box-shadow .24s ease,border-color .24s ease}
+.opportunity:hover{transform:translateY(-4px);border-color:#c9d9f2;box-shadow:0 14px 36px #243b601a}
+.primary,.save,.outline,.auth-tab{transition:transform .18s var(--kr-ease),background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
+.primary:hover{transform:translateY(-2px);box-shadow:0 8px 20px #2563eb38}
+.primary:active,.save:active,.outline:active,.auth-tab:active{transform:translateY(0) scale(.98)}
+.save:hover,.outline:hover{border-color:#9eb9e9;background:#f1f6ff}
+.saved-item{transition:background-color .2s ease,transform .2s var(--kr-ease)}
+.saved-item:hover{background:#eff5ff;transform:translateX(3px)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+input,select{transition:border-color .2s ease,box-shadow .2s ease}
+input:focus,select:focus{border-color:#80a9f3;box-shadow:0 0 0 3px #2563eb13}
+header{animation:kr-enter .58s var(--kr-ease) both}
+.stats .stat{animation:kr-enter .5s var(--kr-ease) both}
+.stats .stat:nth-child(2){animation-delay:.07s}
+.stats .stat:nth-child(3){animation-delay:.14s}
+.panel{animation:kr-enter .5s var(--kr-ease) both;animation-delay:.12s}
+.cards .opportunity{animation:kr-card-enter .36s var(--kr-ease) both}
+.cards .opportunity:nth-child(2n){animation-delay:.035s}
+@keyframes kr-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kr-card-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:720px){
+  .sidebar nav a:hover{transform:none}
+  .stat:hover,.opportunity:hover{transform:none}
+  .sidebar nav{scrollbar-width:thin}
+  .saved-item{flex-wrap:wrap;overflow-wrap:anywhere}
+  .account-main .auth-panel{padding:20px}
+  .account-main .auth-form{max-width:100%}
+  .account-main .auth-tabs{flex-wrap:wrap}
+  .account-main .auth-form input,.account-main .auth-form select{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}

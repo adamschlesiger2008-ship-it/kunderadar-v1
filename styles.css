@@ -109,3 +109,45 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .panel{border-radius:15px}
 }
 @media(prefers-reduced-motion:reduce){header::before{animation:none}}
+
+
+/* Mercell-inspired clarity: distinct KundeRadar brand, not a copy */
+:root{--kr-ink:#17253f;--kr-navy:#111c3a;--kr-purple:#6251c7;--kr-aqua:#0c9f9b}
+body{background:#f5f6fa;color:var(--kr-ink)}
+.sidebar{background:#141a35;border-right:1px solid #ffffff13;box-shadow:none}
+.sidebar .brand{color:#fff;text-decoration:none}
+.brand-icon{background:linear-gradient(145deg,#7465e9,#20b5b1);border-radius:10px}
+.sidebar nav a.active{background:#ffffff15;border:1px solid #ffffff18}
+.sidebar nav a:hover{background:#ffffff12}
+.sidebar .accent{color:#a7a0ff}
+header{padding:clamp(32px,4.2vw,60px);background:linear-gradient(115deg,#fff 0%,#fff 55%,#eeebff 100%);border:1px solid #e9e9f4;border-radius:20px;box-shadow:0 14px 38px #1d25500a;min-height:330px}
+header::before{width:350px;height:350px;top:-135px;right:-105px;background:radial-gradient(circle,#a99af58c 0%,#b1e7e24d 45%,transparent 72%)}
+header::after{background:radial-gradient(circle,#b7e5e98a,transparent 70%)}
+header h1{font-size:clamp(36px,4vw,58px);line-height:1.12;max-width:800px;margin:20px 0 16px;letter-spacing:-2.3px}
+h1 .gradient{background:linear-gradient(95deg,#6451c5,#168c9c);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .intro{font-size:16px;max-width:630px;color:#5b6881;line-height:1.8}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin:25px 0 19px}
+.hero-cta,.hero-secondary{display:inline-flex;align-items:center;justify-content:center;gap:20px;min-height:47px;padding:12px 19px;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none;transition:transform .2s var(--kr-ease),box-shadow .2s ease,background .2s ease}
+.hero-cta{color:#fff;background:#6251c7;box-shadow:0 7px 18px #6251c72e}
+.hero-cta:hover{background:#4d3db1;transform:translateY(-2px);box-shadow:0 12px 24px #6251c73c}
+.hero-secondary{color:#403e82;background:#fff;border:1px solid #d9d7ed}
+.hero-secondary:hover{background:#f7f5ff;transform:translateY(-2px)}
+.hero-trust{display:flex;align-items:center;gap:8px;color:#65718a;font-size:12px;font-weight:600}
+.trust-dot{width:8px;height:8px;background:#0c9f9b;border-radius:50%;box-shadow:0 0 0 4px #0c9f9b1a;flex:none}
+.eyebrow{color:#6251c7}
+.demo-chip{background:#f2f0ff;color:#5744af;border:1px solid #e1dbfa}
+.stat,.panel{border-color:#e7e9f1;border-radius:15px;box-shadow:0 7px 22px #26335709}
+.stat::before{background:#6c5cd2}.stat:nth-child(2)::before{background:#149f9e}.stat:nth-child(3)::before{background:#8d78e0}
+.stat strong{color:#1b2851}
+.dataset-bar{background:#f8f8fd;border-color:#e7e5f4}
+.opportunity{border-color:#e7e9f1;background:#fff}
+.opportunity:hover{border-color:#c6bff4;box-shadow:0 14px 30px #3d37661a}
+.tag{background:#f0edff;color:#5949b2}
+.primary{background:#6251c7;box-shadow:none}
+.primary:hover{background:#4d3db1;box-shadow:0 8px 19px #6251c72a}
+.source-link{color:#5949b2}
+.source-link:hover{color:#0b8989}
+.saved-item:hover{background:#f0edff}
+.account-main header{min-height:unset}
+@media(max-width:720px){header{padding:26px 20px;min-height:unset}header h1{font-size:clamp(31px,8vw,42px);letter-spacing:-1.2px}.hero-actions{display:grid;grid-template-columns:1fr}.hero-cta,.hero-secondary{width:100%}.hero-trust{line-height:1.6;align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.hero-cta,.hero-secondary{transition:none}}

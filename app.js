@@ -420,6 +420,20 @@ async function init() {
     render();
   });
 
+  // Blide scroll-animationer. Indholdet er altid synligt uden JS.
+  if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const targets = document.querySelectorAll('.landing-v3 .stat, .landing-v3 .panel, .landing-v3 .kr-section-kicker');
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('kr-in-view');
+          observer.unobserve(entry.target);
+        }
+      }
+    }, { threshold: 0.08, rootMargin: '0px 0px -25px 0px' });
+    targets.forEach(el => observer.observe(el));
+  }
+
   $('year').textContent = new Date().getFullYear();
 
   $('savedCount').textContent = saved.size;
@@ -448,7 +462,11 @@ function refreshFilters() {
 
     el.replaceChildren(new Option(placeholder, ''));
 
-    options(el, unique(field));
+    // Vis altid alle danske regioner, også når datasættet er tomt.
+    const regionChoices = ['Hovedstaden', 'Midtjylland', 'Nordjylland', 'Sjælland', 'Syddanmark'];
+    options(el, field === 'region'
+      ? [...new Set([...regionChoices, ...unique(field)])].sort((a, b) => a.localeCompare(b, 'da'))
+      : unique(field));
 
     el.value = [...el.options].some(
       o => o.value === previous

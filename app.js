@@ -422,7 +422,7 @@ async function init() {
 
   // Blide scroll-animationer. Indholdet er altid synligt uden JS.
   if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const targets = document.querySelectorAll('.landing-v3 .stat, .landing-v3 .panel, .landing-v3 .kr-section-kicker');
+    const targets = document.querySelectorAll('.landing-v3 .stat, .landing-v3 .panel, .landing-v3 .kr-section-kicker, .landing-v3 .kr-benefit, .landing-v3 .kr-editorial');
     const observer = new IntersectionObserver(entries => {
       for (const entry of entries) {
         if (entry.isIntersecting) {

@@ -314,3 +314,44 @@ header .intro{font-size:16px;max-width:630px;color:#5b6881;line-height:1.8}
 @media(max-width:780px){.kr-radar-stage{width:min(90vw,320px)}.landing-v3 .kr-hero{min-height:unset}.landing-v3 .kr-hero h1{letter-spacing:-1.5px}.kr-hero-art .kr-art-card{width:min(100%,290px)}.kr-hero-art .kr-art-floating{display:none}}
 @media(hover:none){.landing-v3 .opportunity:hover,.landing-v3 .kr-topaccount:hover,.landing-v3 .primary:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.kr-radar-sweep,.kr-radar-ping,.kr-hero-art .kr-art-card,.kr-hero-art .kr-art-floating,.landing-v3 .hero-cta::after{animation:none!important}.landing-v3 .opportunity,.landing-v3 .filters input,.landing-v3 .filters select{transition:none!important}}
+
+
+/* V6: editorial sections inspired by premium agency storytelling, original KundeRadar visuals */
+.landing-v3 .kr-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:0 0 54px}
+.kr-benefit{display:flex;align-items:flex-start;gap:16px;padding:24px 20px;background:#fff;border:1px solid #e7e8f1;border-radius:17px;box-shadow:0 8px 28px #1e28500b;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,border-color .35s ease}
+.kr-benefit:hover{transform:translateY(-8px);border-color:#c6bdf3;box-shadow:0 22px 42px #25205c1c}
+.kr-benefit-icon{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,#eeeaff,#ddfbf6);color:#6250c5;font-size:28px}
+.kr-benefit strong{display:block;color:#1d2443;font-size:15px;letter-spacing:-.3px;margin:1px 0 7px}
+.kr-benefit p{color:#69748c;font-size:12px;line-height:1.7;margin:0}
+.kr-editorial{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:45px;min-height:420px;padding:clamp(30px,5vw,65px);margin-bottom:52px;background:#f0effb;border:1px solid #e4e0f8;border-radius:24px;overflow:hidden;isolation:isolate}
+.kr-editorial::before{content:"";position:absolute;right:-130px;top:-160px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,#c6b9ffb8,transparent 70%);z-index:-1;animation:kr-editorial-glow 9s ease-in-out infinite alternate}
+.kr-mini-label{color:#6655ce;font-size:11px;font-weight:850;letter-spacing:1.6px}
+.kr-editorial-copy h2{color:#202347;font-size:clamp(29px,3.3vw,48px);letter-spacing:-1.8px;line-height:1.16;margin:20px 0}
+.kr-editorial-copy h2 em{font-style:normal;color:#6854ce}
+.kr-editorial-copy p{color:#606b82;font-size:14px;line-height:1.9;max-width:510px;margin-bottom:25px}
+.kr-editorial-link{display:inline-flex;gap:16px;align-items:center;text-decoration:none;color:#fff;background:#6251c7;padding:14px 19px;border-radius:10px;font-size:13px;font-weight:800;transition:transform .25s ease,box-shadow .25s ease}
+.kr-editorial-link:hover{transform:translateY(-3px);box-shadow:0 14px 25px #6251c73d}
+.kr-editorial-visual{position:relative;min-height:320px;display:grid;place-items:center}
+.kr-visual-halo{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,#8e80eb88,#2bc5b12b 60%,transparent 74%);animation:kr-editorial-glow 7s ease-in-out infinite alternate}
+.kr-visual-card{position:relative;width:min(100%,340px);padding:23px;background:#fff;border:1px solid #fff;border-radius:19px;box-shadow:0 30px 65px #302b7540;transform:rotate(4deg);animation:kr-visual-float 6s ease-in-out infinite alternate}
+.kr-visual-top{display:flex;gap:5px;align-items:center;margin-bottom:26px}
+.kr-visual-top strong{margin-left:auto;color:#373758;font-size:12px}
+.kr-visual-dot{width:8px;height:8px;border-radius:50%;background:#d8d2fa}
+.kr-visual-dot:first-child{background:#8a7ae5}
+.kr-visual-line{height:8px;width:53%;border-radius:12px;background:#e9e7f8;margin-bottom:10px}
+.kr-visual-line.kr-wide{width:78%;background:#d9d4f4}
+.kr-visual-mini{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid #f0eff7;margin-top:12px;color:#6554c7}
+.kr-visual-mini>span:first-child{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#f0edff;font-size:21px}
+.kr-visual-mini>span:last-child{margin-left:auto}
+.kr-visual-mini div{display:grid;gap:3px}.kr-visual-mini b{color:#262847;font-size:12px}.kr-visual-mini small{color:#8a90a7;font-size:10px}
+.kr-visual-orbit{position:absolute;z-index:2;font-size:30px;color:#7c69dd;text-shadow:0 0 25px #806ff69a;animation:kr-orbit-bob 4s ease-in-out infinite alternate}
+.kr-orbit-one{top:10%;right:8%}.kr-orbit-two{bottom:6%;left:7%;animation-delay:-2s;color:#1bb3a3}
+@keyframes kr-visual-float{from{transform:translateY(12px) rotate(5deg)}to{transform:translateY(-10px) rotate(1deg)}}
+@keyframes kr-editorial-glow{from{transform:scale(.88) translateY(12px)}to{transform:scale(1.12) translateY(-12px)}}
+@keyframes kr-orbit-bob{from{transform:translateY(10px) scale(.8);opacity:.5}to{transform:translateY(-12px) scale(1.2);opacity:1}}
+@media(max-width:900px){.landing-v3 .kr-benefits{gap:10px}.kr-benefit{padding:18px 14px;gap:10px}.kr-benefit-icon{width:38px;height:38px;font-size:22px}.kr-editorial{gap:15px;padding:30px}}
+@media(max-width:680px){.landing-v3 .kr-benefits{grid-template-columns:1fr;gap:11px;margin-bottom:28px}.kr-benefit{padding:18px}.kr-editorial{grid-template-columns:1fr;gap:12px;margin-bottom:34px;padding:26px 20px;border-radius:18px}.kr-editorial-visual{min-height:265px}.kr-visual-card{width:min(100%,290px)}.kr-editorial-copy h2{font-size:clamp(29px,8vw,38px)}}
+@media(hover:none){.kr-benefit:hover,.kr-editorial-link:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.kr-editorial::before,.kr-visual-halo,.kr-visual-card,.kr-visual-orbit{animation:none!important}.kr-benefit,.kr-editorial-link{transition:none!important}}
+
+.landing-v3 .kr-benefit.kr-in-view{animation:kr-rise-visible .65s cubic-bezier(.2,.8,.2,1) both}.landing-v3 .kr-benefit:nth-child(2).kr-in-view{animation-delay:.12s}.landing-v3 .kr-benefit:nth-child(3).kr-in-view{animation-delay:.24s}.landing-v3 .kr-editorial.kr-in-view{animation:kr-rise-visible .75s cubic-bezier(.2,.8,.2,1) both}@media(prefers-reduced-motion:reduce){.landing-v3 .kr-benefit.kr-in-view,.landing-v3 .kr-editorial.kr-in-view{animation:none!important}}

@@ -210,6 +210,18 @@ $('authSetPasswordForm').addEventListener('submit', async event => {
     setBusy(false);
   }
 });
+$('authEmailPasswordReset').addEventListener('click', async () => {
+  if (!client) return;
+  $('authEmailPasswordReset').disabled = true;
+  try {
+    const { data: { user }, error: userError } = await client.auth.getUser();
+    if (userError || !user?.email) throw new Error('Du skal være logget ind.');
+    const { error } = await client.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/reset-password.html?recovery=1' });
+    if (error) throw error;
+    message('Vi har sendt et link til din e-mail. Bekræft skiftet derfra.');
+  } catch (error) { message(errorText(error), true); }
+  finally { $('authEmailPasswordReset').disabled = false; }
+});
 $('authLogout').addEventListener('click', async () => {
   if (!client) return;
   const { error } = await client.auth.signOut();

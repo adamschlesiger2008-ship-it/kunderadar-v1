@@ -54,3 +54,58 @@ header{animation:kr-enter .58s var(--kr-ease) both}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+
+/* KundeRadar 2026 visual refresh — accessible aurora palette */
+:root{--kr-ink:#13243b;--kr-muted:#64748b;--kr-teal:#0d9488;--kr-violet:#7554d7;--kr-blue:#315cf4;--kr-line:#dfe7f2;--kr-soft:#f6f8fd}
+body{color:var(--kr-ink);background:radial-gradient(ellipse 680px 420px at 92% 2%,#e8e3ff 0%,transparent 76%),radial-gradient(ellipse 650px 400px at 30% 14%,#dcf7f1 0%,transparent 78%),#f5f7fc}
+.sidebar{background:linear-gradient(165deg,#101d36 0%,#172443 54%,#142d3f 100%);border-right:1px solid #ffffff16}
+.brand{letter-spacing:-1px}.brand-icon{background:linear-gradient(140deg,#14b8a6,#6057e8);box-shadow:0 7px 24px #14b8a638}
+.accent,.gradient{color:#6255d8}
+.sidebar .accent{color:#60e0cb}
+.sidebar nav a.active{background:linear-gradient(90deg,#22c9b324,#7664f324);border:1px solid #a5e9de35;color:#fff}
+.sidebar nav a:hover{background:#ffffff17}
+main{position:relative}
+header{position:relative;isolation:isolate;padding:clamp(23px,3.2vw,40px);border-radius:22px;background:linear-gradient(125deg,#fff 0%,#f4f9ff 46%,#eeebff 100%);border:1px solid #e0e7f4;box-shadow:0 12px 38px #2035540b;overflow:hidden}
+header::before{content:"";position:absolute;z-index:-1;width:320px;height:320px;right:-95px;top:-160px;border-radius:50%;background:radial-gradient(circle,#a5f3e0a8 0%,#b6abff59 46%,transparent 72%);animation:kr-orb 9s ease-in-out infinite alternate;pointer-events:none}
+header::after{content:"";position:absolute;z-index:-1;width:220px;height:220px;right:15%;bottom:-175px;border-radius:50%;background:radial-gradient(circle,#d2b7ff66,transparent 72%);pointer-events:none}
+h1{max-width:820px;letter-spacing:-1.9px}
+h1 .gradient{background:linear-gradient(100deg,#0b948b 0%,#3261e9 50%,#7950cc 100%);background-clip:text;-webkit-background-clip:text;color:transparent}
+.intro{color:#5b6b83}
+.eyebrow{color:#0f817e}
+.demo-chip{background:#e4f8f1;color:#087769;border:1px solid #b6e8d8}
+.stat,.panel{border-color:#e0e8f3;box-shadow:0 9px 28px #263e640a;border-radius:18px}
+.stat{position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(#10b9a8,#7055df)}
+.stat strong{color:#19315a}
+.stat:nth-child(2)::before{background:linear-gradient(#4d82f4,#a284fa)}
+.stat:nth-child(3)::before{background:linear-gradient(#8b6df0,#19bcae)}
+.panel{background:#ffffffed}
+.section-title h2{font-weight:800;color:#172b49}
+.dataset-bar{background:linear-gradient(100deg,#eefbf8,#f3f1ff);border-color:#d4e8e6}
+.filters input,.filters select,.prefs select,.auth-form input,.auth-form select,.dataset-bar select{border-color:#d9e3f0;border-radius:11px;background:#fff}
+.filters input:focus,.filters select:focus,.prefs select:focus,.auth-form input:focus,.auth-form select:focus{border-color:#0d9488;box-shadow:0 0 0 4px #0d94881a;outline:none}
+.opportunity{border-radius:16px;border-color:#e0e8f2;background:linear-gradient(160deg,#fff 0%,#fcfdff 100%)}
+.opportunity:hover{border-color:#8bded2;box-shadow:0 17px 36px #163b5b18}
+.tag{background:#e9f8f5;color:#08786f}
+.source-link{color:#3157cf}
+.source-link:hover{color:#0d9488}
+.primary{background:linear-gradient(110deg,#0e9b90 0%,#3466e8 52%,#7056d9 100%);box-shadow:0 4px 12px #315cf41c}
+.primary:hover{background:linear-gradient(110deg,#087f76 0%,#2955cf 52%,#5d43be 100%);box-shadow:0 9px 24px #315cf43d}
+.save[aria-pressed=true]{background:#e6f8f4;border-color:#86d8c9;color:#08786f}
+.auth-tab.is-active{background:#e9f8f5;color:#08786f;border-color:#0d9488}
+.saved-item{background:#f3f7fd;border:1px solid #e5ecf5}
+.saved-item:hover{background:#e9f8f5}
+.account-main header{max-width:820px}
+.account-main .auth-panel{box-shadow:0 14px 40px #263e6410}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #0b8c83;outline-offset:3px}
+@keyframes kr-orb{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-40px,40px,0) scale(1.16)}}
+@media(max-width:720px){
+ header{padding:23px 19px;border-radius:16px}
+ header::before{width:200px;height:200px;right:-90px;top:-90px}
+ h1{letter-spacing:-1.1px}
+ .sidebar nav a.active{border-color:#a5e9de35}
+ .stat{border-radius:12px}
+ .panel{border-radius:15px}
+}
+@media(prefers-reduced-motion:reduce){header::before{animation:none}}

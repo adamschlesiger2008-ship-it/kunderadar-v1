@@ -38,13 +38,18 @@ function setMode(nextSignup) {
   setBusy(false);
   message('');
 }
+function renderAccountRole(role) {
+  document.querySelectorAll('[data-account-role]').forEach(a=>{a.style.display=a.dataset.accountRole.split(' ').includes(role)?'':'none';});
+  const label=$('accountRoleLabel');if(label)label.textContent=role==='person'?'Privatperson':role==='company'?'Virksomhed':'Vælg eller log ind på konto';
+  const action=$('accountRoleAction');if(action){action.style.display=role==='guest'?'none':'';action.href=role==='company'?'/find-hjaelper.html#opret-virksomhed':'/find-hjaelper.html#opret-opslag';action.textContent=role==='company'?'Min virksomhedsprofil ↗':'Opret opslag ↗';}
+}
 function showUser(user) {
   $('authGuest').hidden = Boolean(user) || recovering;
   $('authMember').hidden = !user || recovering;
   $('authUserEmail').textContent = user?.email || '';
   notifySync(user);
   $('profileEmail').value = user?.email || '';
-  if (!user) profileLoadedFor = null;
+  if (!user) {profileLoadedFor = null;renderAccountRole("guest");}
   else if (client && profileLoadedFor !== user.id) {
     profileLoadedFor = user.id;
     void loadProfile(user.id);
@@ -72,6 +77,7 @@ async function loadProfile(userId) {
   const { data, error } = await client.from('kr_profiles').select('account_type,display_name,phone,address,company_name,cvr').eq('user_id', userId).maybeSingle();
   if (profileLoadedFor !== userId) return;
   if (error) { $('profileMessage').textContent = 'Kunne ikke hente profil: ' + errorText(error); return; }
+  renderAccountRole(data?.account_type || 'guest');
   $('profileType').value = data?.account_type === 'company' ? 'company' : 'person';
   $('profileName').value = data?.display_name || '';
   $('profilePhone').value = data?.phone || '';
@@ -101,6 +107,7 @@ $('profileForm').addEventListener('submit', async event => {
     if (company && !/^[0-9]{8}$/.test(payload.cvr)) throw new Error('CVR-nummer skal være præcis 8 cifre.');
     const { error } = await client.from('kr_profiles').upsert(payload, { onConflict: 'user_id' });
     if (error) throw error;
+    renderAccountRole(payload.account_type);
     $('profileMessage').textContent = 'Dine oplysninger er gemt på din konto.';
   } catch (error) {
     $('profileMessage').textContent = 'Kunne ikke gemme: ' + errorText(error);

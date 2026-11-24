@@ -78,7 +78,7 @@ $('companyForm').addEventListener('submit',async e=>{
   const {data:existing,error:lookupError}=await client.from('kr_service_listings').select('id,approved,subscription_until').eq('user_id',current.id).maybeSingle();if(lookupError)throw lookupError;
   const result=existing?await client.from('kr_service_listings').update(payload).eq('id',existing.id).eq('user_id',current.id):await client.from('kr_service_listings').insert({...payload,user_id:current.id});
   if(result.error)throw result.error;
-  status('companyStatus','Profil gemt. Den bliver først synlig efter godkendelse og aktivering af betalt abonnement.');
+  status('companyStatus','Profil gemt. Fortsætter til abonnement…');location.assign('/priser.html#betaling');
  }catch(err){status('companyStatus',err.message||'Kunne ikke gemme virksomheden.');}finally{btn.disabled=false;}
 });
 async function init(){

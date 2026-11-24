@@ -88,8 +88,13 @@ async function init(){
  if(!user){status('jobStatus','Log ind under Min konto for at oprette en opgave.');status('companyStatus','Log ind som virksomhed under Min konto for at oprette en profil.');}
  else{
   const {data:profile}=await client.from('kr_profiles').select('account_type,display_name,company_name,cvr,phone,address').eq('user_id',user.id).maybeSingle();
-  if(profile){$('jobEmail').value=user.email||'';$('jobPhone').value=profile.phone||'';$('jobAddress').value=profile.address||'';$('companyName').value=profile.company_name||'';$('companyCvr').value=profile.cvr||'';$('companyPhone').value=profile.phone||'';$('companyEmail').value=user.email||'';}
-  await loadMyJobs();
+  if(profile){
+ const person=profile.account_type==='person', company=profile.account_type==='company';
+ $('opret-opslag').style.display=person?'':'none';$('opret-virksomhed').style.display=company?'':'none';$('companyJobsSection').style.display=company?'':'none';
+ $('jobHeroLink').href=person?'#opret-opslag':company?'#opret-virksomhed':'/konto.html';$('jobHeroLink').textContent=person?'Opret en opgave →':company?'Stil dig til rådighed →':'Vælg kontotype →';
+ if(person)document.querySelectorAll('nav a[href="/"]').forEach(a=>a.style.display='none');
+ $('jobEmail').value=user.email||'';$('jobPhone').value=profile.phone||'';$('jobAddress').value=profile.address||'';$('companyName').value=profile.company_name||'';$('companyCvr').value=profile.cvr||'';$('companyPhone').value=profile.phone||'';$('companyEmail').value=user.email||'';}
+  if(profile?.account_type==='person')await loadMyJobs();
   const {data:listing}=await client.from('kr_service_listings').select('*').eq('user_id',user.id).maybeSingle();
   if(listing){for(const [id,key] of [['companyName','company_name'],['companyCvr','cvr'],['companyIndustry','industry'],['companyWork','work_type'],['companyDescription','description'],['companyCity','city'],['companyRegion','region'],['companyEmail','contact_email'],['companyPhone','phone'],['companyWebsite','website']])$(id).value=listing[key]||'';status('companyStatus',listing.approved&&new Date(listing.subscription_until)>new Date()?'Din profil er aktiv.':'Din profil er gemt, men ikke offentlig: abonnement og godkendelse mangler.');}
  }

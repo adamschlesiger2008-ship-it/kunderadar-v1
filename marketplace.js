@@ -25,14 +25,18 @@ function renderCompanies(){
 }
 ['search','industry','region'].forEach(id=>$(id).addEventListener('input',renderCompanies));
 async function loadCompanies(){
- const {data,error}=await client.from('kr_service_listings').select('company_name,industry,work_type,description,city,region,contact_email,phone,website').order('created_at',{ascending:false});
+ const {data,error}=await client.from('kr_service_listings').select('company_name,industry,work_type,description,city,region,contact_email,phone,website').eq('approved',true).gt('subscription_until',new Date().toISOString()).order('created_at',{ascending:false});
  if(error){status('listStatus','Kunne ikke hente virksomheder lige nu.');return;}
  companies=data||[];renderCompanies();
 }
 async function loadJobs(){
+ if(!user){status('publicJobStatus','Kun godkendte virksomheder med aktivt abonnement kan se kundeopgaver.');return;}
+ const {data:active}=await client.from('kr_service_listings').select('id').eq('user_id',user.id).eq('approved',true).gt('subscription_until',new Date().toISOString()).maybeSingle();
+ if(!active){status('publicJobStatus','Kun godkendte virksomheder med aktivt abonnement kan se kundeopgaver.');return;}
  const {data,error}=await client.from('kr_jobs').select('id,title,description,city,industry,work_type,created_at').eq('status','published').order('created_at',{ascending:false}).limit(30);
  if(error){status('publicJobStatus','Log ind for at se offentliggjorte opgaver.');return;}
- $('publicJobs').replaceChildren(...(data||[]).map(x=>{const card=el('article','kr-market-card');card.append(el('span','kr-mini-label',x.industry),el('h3','',x.title),el('p','',x.description),el('p','kr-market-meta',[x.work_type,x.city].filter(Boolean).join(' · ')));return card;}));
+ const {data:contacts}=await client.from('kr_job_contacts').select('job_id,email,phone').in('job_id',(data||[]).map(x=>x.id));
+ $('publicJobs').replaceChildren(...(data||[]).map(x=>{const card=el('article','kr-market-card');card.append(el('span','kr-mini-label',x.industry),el('h3','',x.title),el('p','',x.description),el('p','kr-market-meta',[x.work_type,x.city].filter(Boolean).join(' · ')));const contact=(contacts||[]).find(c=>c.job_id===x.id);if(contact){const links=el('div','kr-contact');const mail=el('a','','Skriv til kunden');mail.href='mailto:'+contact.email;const tel=el('a','',contact.phone);tel.href='tel:'+contact.phone.replace(/[^+0-9]/g,'');links.append(mail,tel);card.append(links);}return card;}));
  status('publicJobStatus',(data||[]).length?'':'Ingen offentliggjorte opgaver endnu.');
 }
 async function loadMyJobs(){
@@ -48,20 +52,22 @@ async function loadMyJobs(){
 }
 async function requireUser(type){
  const {data:{user:current},error}=await client.auth.getUser();
- if(error||!current){throw new Error('Du skal oprette en konto og bekræfte din e-mail først. Gå til Min konto.');}
+ if(error||!current||!current.email_confirmed_at){throw new Error('Du skal oprette en konto og bekræfte din e-mail først. Gå til Min konto.');}
  const {data:profile}=await client.from('kr_profiles').select('account_type').eq('user_id',current.id).maybeSingle();
  if(profile?.account_type!==type)throw new Error('Vælg kontotypen '+(type==='person'?'Privatperson':'Virksomhed')+' og gem profilen under Min konto først.');
  return current;
 }
 $('jobForm').addEventListener('submit',async e=>{
- e.preventDefault();const btn=e.currentTarget.querySelector('button[type=submit]');btn.disabled=true;status('jobStatus','Gemmer dit opslag…');
+ e.preventDefault();const form=e.currentTarget;const btn=form.querySelector('button[type=submit]');btn.disabled=true;status('jobStatus','Gemmer dit opslag…');
  try{
   const current=await requireUser('person');
-  const payload={customer_id:current.id,title:$('jobTitle').value.trim(),description:$('jobDescription').value.trim(),work_type:$('jobType').value.trim(),industry:$('jobIndustry').value,city:$('jobCity').value.trim(),address:$('jobAddress').value.trim(),status:'published'};
+  if(!$('jobConsent').checked)throw new Error('Du skal acceptere deling af kontaktoplysninger.');
+  const payload={customer_id:current.id,title:$('jobTitle').value.trim(),description:$('jobDescription').value.trim(),work_type:$('jobType').value.trim(),industry:$('jobIndustry').value,city:$('jobCity').value.trim(),address:$('jobAddress').value.trim(),status:'draft',share_phone_with_verified_companies:true};
   const {data,error}=await client.from('kr_jobs').insert(payload).select('id').single();if(error)throw error;
   const {error:contactError}=await client.from('kr_job_contacts').insert({job_id:data.id,email:$('jobEmail').value.trim(),phone:$('jobPhone').value.trim()});
   if(contactError){await client.from('kr_jobs').delete().eq('id',data.id);throw contactError;}
-  e.currentTarget.reset();status('jobStatus','Dit opslag er oprettet. Adresse og kontaktoplysninger vises ikke offentligt.');await loadMyJobs();await loadJobs();
+  const {error:publishError}=await client.from('kr_jobs').update({status:'published'}).eq('id',data.id);if(publishError)throw publishError;
+  form.reset();status('jobStatus','Dit opslag er oprettet. Kun godkendte betalende virksomheder kan se din e-mail og telefon.');await loadMyJobs();await loadJobs();
  }catch(err){status('jobStatus',err.message||'Kunne ikke oprette opslag.');}finally{btn.disabled=false;}
 });
 $('companyForm').addEventListener('submit',async e=>{

@@ -38,6 +38,21 @@ function setMode(nextSignup) {
   setBusy(false);
   message('');
 }
+async function renderMembership(userId,role){
+  let panel=$('krMembership');
+  if(!panel){panel=document.createElement('section');panel.id='krMembership';panel.className='panel';$('profileForm').after(panel);}
+  panel.hidden=role!=='company';
+  if(role!=='company')return;
+  panel.textContent='Henter medlemskab…';
+  const {data,error}=await client.from('kr_service_listings').select('approved,subscription_until').eq('user_id',userId).maybeSingle();
+  if(profileLoadedFor!==userId||$('profileType').value!=='company')return;
+  const h=document.createElement('h2');h.textContent='Dit KundeRadar-medlemskab';
+  const p=document.createElement('p');
+  const remaining=data?.subscription_until?new Date(data.subscription_until).getTime()-Date.now():0;
+  p.textContent=error?'Medlemsstatus kunne ikke hentes.':!data?'Opret din virksomhedsprofil først.':!data.approved?'Afventer CVR-godkendelse.':remaining>0?'Aktiv adgang · '+Math.ceil(remaining/86400000)+' dage tilbage.':'Din adgang er udløbet.';
+  const a=document.createElement('a');a.href=data?'/priser.html#betaling':'/find-hjaelper.html#opret-virksomhed';a.textContent=data?'Se medlemskab og pris ↗':'Opret virksomhedsprofil ↗';
+  panel.replaceChildren(h,p,a);
+}
 function renderAccountRole(role) {
   document.querySelectorAll('[data-account-role]').forEach(a=>{a.style.display=a.dataset.accountRole.split(' ').includes(role)?'':'none';});
   const label=$('accountRoleLabel');if(label)label.textContent=role==='person'?'Privatperson':role==='company'?'Virksomhed':'Vælg eller log ind på konto';
@@ -49,7 +64,7 @@ function showUser(user) {
   $('authUserEmail').textContent = user?.email || '';
   notifySync(user);
   $('profileEmail').value = user?.email || '';
-  if (!user) {profileLoadedFor = null;renderAccountRole("guest");}
+  if (!user) {profileLoadedFor = null;renderAccountRole("guest");if($('krMembership'))$('krMembership').hidden=true;}
   else if (client && profileLoadedFor !== user.id) {
     profileLoadedFor = user.id;
     void loadProfile(user.id);
@@ -85,6 +100,7 @@ async function loadProfile(userId) {
   $('profileCompanyName').value = data?.company_name || '';
   $('profileCvr').value = data?.cvr || '';
   profileTypeChanged();
+  void renderMembership(userId,data?.account_type);
 }
 $('profileForm').addEventListener('submit', async event => {
   event.preventDefault();
@@ -108,6 +124,7 @@ $('profileForm').addEventListener('submit', async event => {
     const { error } = await client.from('kr_profiles').upsert(payload, { onConflict: 'user_id' });
     if (error) throw error;
     renderAccountRole(payload.account_type);
+    void renderMembership(user.id,payload.account_type);
     $('profileMessage').textContent = 'Dine oplysninger er gemt på din konto.';
   } catch (error) {
     $('profileMessage').textContent = 'Kunne ikke gemme: ' + errorText(error);

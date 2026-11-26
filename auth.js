@@ -38,6 +38,25 @@ function setMode(nextSignup) {
   setBusy(false);
   message('');
 }
+async function renderTestSubscription(userId){
+  let panel=$('krTestSubscription');
+  if(panel){panel.hidden=true;panel.replaceChildren();}
+  if(! $('profileForm'))return;
+  const {data,error}=await client.from('kr_test_subscriptions').select('status,period_end,cancel_at_period_end').eq('user_id',userId).order('updated_at',{ascending:false}).limit(10);
+  if(profileLoadedFor!==userId||error||!data?.length)return;
+  if(!panel){panel=document.createElement('section');panel.id='krTestSubscription';panel.className='panel';$('profileForm').after(panel);}
+  const h=document.createElement('h2');h.textContent='Stripe · Testabonnement';
+  const note=document.createElement('p');note.textContent='Testtilstand – ingen rigtige betalinger eller kundeadgang.';
+  panel.replaceChildren(h,note);
+  const labels={active:'Aktivt',trialing:'Prøveperiode',past_due:'Betaling mangler',unpaid:'Ubetalt',canceled:'Opsagt',incomplete:'Afventer betaling',incomplete_expired:'Udløbet',paused:'Sat på pause'};
+  for(const sub of data){
+    const p=document.createElement('p');
+    const end=sub.period_end?new Date(sub.period_end).toLocaleDateString('da-DK',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Copenhagen'}):'Ikke registreret';
+    p.textContent='Status: '+(labels[sub.status]||sub.status)+' · Periode slutter: '+end+(sub.cancel_at_period_end?' · Opsagt ved periodens udløb':'');
+    panel.append(p);
+  }
+  panel.hidden=false;
+}
 async function renderMembership(userId,role){
   let panel=$('krMembership');
   if(!panel){panel=document.createElement('section');panel.id='krMembership';panel.className='panel';$('profileForm').after(panel);}
@@ -64,10 +83,11 @@ function showUser(user) {
   $('authUserEmail').textContent = user?.email || '';
   notifySync(user);
   $('profileEmail').value = user?.email || '';
-  if (!user) {profileLoadedFor = null;renderAccountRole("guest");if($('krMembership'))$('krMembership').hidden=true;}
+  if (!user) {profileLoadedFor = null;renderAccountRole("guest");if($('krMembership'))$('krMembership').hidden=true;if($('krTestSubscription')){$('krTestSubscription').hidden=true;$('krTestSubscription').replaceChildren();}}
   else if (client && profileLoadedFor !== user.id) {
     profileLoadedFor = user.id;
     void loadProfile(user.id);
+    void renderTestSubscription(user.id);
   }
 }
 function errorText(error) {

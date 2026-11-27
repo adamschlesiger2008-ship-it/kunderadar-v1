@@ -114,7 +114,7 @@ cvrButton.addEventListener('click',async()=>{
  await requireUser('company');
  if(!/^\d{8}$/.test(cvr))throw new Error('Indtast 8 cifre.');
  const {data,error}=await client.functions.invoke('cvr-lookup',{body:{cvr}});
- if(error){let detail;try{detail=await error.context.json();}catch{}throw new Error(detail?.error||error.message);}
+ if(error){let detail;try{detail=await error.context.json();}catch{}throw new Error((detail?.error||error.message)+(detail?.upstream_status?' (HTTP '+detail.upstream_status+')':''));}
  if($('companyCvr').value.trim()!==cvr)return;
  cvrOutput.textContent=data.found?'CVR fundet: '+JSON.stringify(data.records)+' — afventer stadig godkendelse.':'CVR ikke fundet.';
  }catch(e){cvrOutput.textContent=e.message||'Opslag mislykkedes.';}finally{cvrButton.disabled=false;}

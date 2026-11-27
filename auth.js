@@ -55,7 +55,7 @@ async function renderTestSubscription(userId){
     p.textContent='Status: '+(labels[sub.status]||sub.status)+' · Periode slutter: '+end+(sub.cancel_at_period_end?' · Opsagt ved periodens udløb':'');
     panel.append(p);
   }
-  const btn=document.createElement('button');btn.type='button';btn.className='button';btn.textContent='Administrér abonnement ↗';
+  const btn=document.createElement('button');btn.type='button';btn.className='primary';btn.textContent='Administrér abonnement ↗';
   const status=document.createElement('p');status.setAttribute('role','status');
   btn.addEventListener('click',async()=>{
     btn.disabled=true;status.textContent='Åbner Stripe…';

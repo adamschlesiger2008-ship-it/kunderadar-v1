@@ -78,7 +78,7 @@ $('companyForm').addEventListener('submit',async e=>{
   const {data:existing,error:lookupError}=await client.from('kr_service_listings').select('id,approved,subscription_until').eq('user_id',current.id).maybeSingle();if(lookupError)throw lookupError;
   const result=existing?await client.from('kr_service_listings').update(payload).eq('id',existing.id).eq('user_id',current.id):await client.from('kr_service_listings').insert({...payload,user_id:current.id});
   if(result.error)throw result.error;
-  status('companyStatus','Profil gemt. Fortsætter til abonnement…');location.assign('/priser.html#betaling');
+  status('companyStatus','Profil gemt. Se din godkendelsesstatus under Min konto.');location.assign('/konto.html');
  }catch(err){status('companyStatus',err.message||'Kunne ikke gemme virksomheden.');}finally{btn.disabled=false;}
 });
 async function init(){
@@ -96,7 +96,7 @@ async function init(){
  $('jobEmail').value=user.email||'';$('jobPhone').value=profile.phone||'';$('jobAddress').value=profile.address||'';$('companyName').value=profile.company_name||'';$('companyCvr').value=profile.cvr||'';$('companyPhone').value=profile.phone||'';$('companyEmail').value=user.email||'';}
   if(profile?.account_type==='person')await loadMyJobs();
   const {data:listing}=await client.from('kr_service_listings').select('*').eq('user_id',user.id).maybeSingle();
-  if(listing){for(const [id,key] of [['companyName','company_name'],['companyCvr','cvr'],['companyIndustry','industry'],['companyWork','work_type'],['companyDescription','description'],['companyCity','city'],['companyRegion','region'],['companyEmail','contact_email'],['companyPhone','phone'],['companyWebsite','website']])$(id).value=listing[key]||'';status('companyStatus',listing.approved&&new Date(listing.subscription_until)>new Date()?'Din profil er aktiv.':'Din profil er gemt, men ikke offentlig: abonnement og godkendelse mangler.');}
+  if(listing){for(const [id,key] of [['companyName','company_name'],['companyCvr','cvr'],['companyIndustry','industry'],['companyWork','work_type'],['companyDescription','description'],['companyCity','city'],['companyRegion','region'],['companyEmail','contact_email'],['companyPhone','phone'],['companyWebsite','website']])$(id).value=listing[key]||'';status('companyStatus',listing.approved&&new Date(listing.subscription_until)>new Date()?'Din profil er aktiv.':'Din profil er gemt. Se godkendelse, prøveperiode og adgang under Min konto.');}
  }
  await Promise.all([loadCompanies(),loadJobs()]);
 }

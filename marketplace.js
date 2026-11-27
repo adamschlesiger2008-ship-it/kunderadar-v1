@@ -116,6 +116,6 @@ cvrButton.addEventListener('click',async()=>{
  const {data,error}=await client.functions.invoke('cvr-lookup',{body:{cvr}});
  if(error){let detail;try{detail=await error.context.json();}catch{}throw new Error((detail?.error||error.message)+(detail?.upstream_status?' (HTTP '+detail.upstream_status+')':''));}
  if($('companyCvr').value.trim()!==cvr)return;
- cvrOutput.textContent=data.found?'CVR fundet: '+(data.fields?.length?data.fields.map(f=>f.name+': '+(f.type.name||f.type.ofType?.name||f.type.ofType?.ofType?.name||f.type.kind)).join(', '):'registreret virksomhed (feltskema ikke tilgængeligt)')+' — afventer stadig godkendelse.':'CVR ikke fundet.';
+ cvrOutput.style.color=data.found?'#167344':'#a12626';cvrOutput.textContent=data.found?'✓ CVR fundet: '+(data.name||'Navn ikke tilgængeligt')+' · Status: '+(data.status||'Ukendt')+' — afventer godkendelse.':'CVR ikke fundet.';if(data.found&&data.name)$('companyName').value=data.name;
  }catch(e){cvrOutput.textContent=e.message||'Opslag mislykkedes.';}finally{cvrButton.disabled=false;}
 });

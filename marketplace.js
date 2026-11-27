@@ -101,3 +101,21 @@ async function init(){
  await Promise.all([loadCompanies(),loadJobs()]);
 }
 init().catch(err=>{status('listStatus','Kunne ikke starte tjenesten. Prøv igen senere.');console.error(err);});
+
+
+const cvrButton=el('button','outline','Kontrollér CVR');cvrButton.type='button';
+const cvrOutput=el('p','','');cvrOutput.setAttribute('role','status');
+$('companyCvr').after(cvrButton,cvrOutput);
+$('companyCvr').addEventListener('input',()=>{cvrOutput.textContent='';});
+cvrButton.addEventListener('click',async()=>{
+ const cvr=$('companyCvr').value.trim();
+ cvrButton.disabled=true;cvrOutput.textContent='Kontrollerer CVR…';
+ try{
+ await requireUser('company');
+ if(!/^\d{8}$/.test(cvr))throw new Error('Indtast 8 cifre.');
+ const {data,error}=await client.functions.invoke('cvr-lookup',{body:{cvr}});
+ if(error){let detail;try{detail=await error.context.json();}catch{}throw new Error(detail?.error||error.message);}
+ if($('companyCvr').value.trim()!==cvr)return;
+ cvrOutput.textContent=data.found?'CVR fundet: '+JSON.stringify(data.records)+' — afventer stadig godkendelse.':'CVR ikke fundet.';
+ }catch(e){cvrOutput.textContent=e.message||'Opslag mislykkedes.';}finally{cvrButton.disabled=false;}
+});
